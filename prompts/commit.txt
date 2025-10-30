@@ -1,0 +1,3 @@
+przejrzyj projekt i znajdź zmiany od otatniego git  commit.
+
+przgotuj commit messages w formacie Conventional Commits i wyślij do git,
