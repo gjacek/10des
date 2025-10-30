@@ -118,3 +118,4 @@ W celu optymalizacji wydajności zapytań, następujące kolumny powinny zostać
 - **Integralność danych**: Zastosowanie `ON DELETE PROTECT` dla relacji z Prowadzącym i Edycją Kursu jest kluczową decyzją biznesową, która chroni przed przypadkową utratą powiązanych danych.
 - **Automatyczne ukrywanie kursów**: Logika ukrywania kursów po dezaktywacji Prowadzącego będzie zaimplementowana w warstwie aplikacji (np. przy użyciu sygnałów Django), a nie na poziomie bazy danych.
 - **Sortowanie lekcji**: Domyślne sortowanie lekcji alfabetycznie po tytule zostanie zdefiniowane w klasie `Meta` modelu `Lesson` w Django (`ordering = ['title']`), co nie jest bezpośrednio częścią schematu SQL, ale wpływa na działanie aplikacji.
+
