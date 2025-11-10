@@ -1,1 +1,1 @@
-Backend Django (Python 3), szablony server-rendered, minimalistyczny front (HTML/CSS/JS z ewentualnym Alpine.js), baza SQLite w dev i PostgreSQL produkcyjnie.
+Backend Django (Python 3), szablony server-rendered, minimalistyczny front (HTML/CSS (pico.css)/JS z ewentualnym Alpine.js), baza SQLite w dev i PostgreSQL produkcyjnie.
