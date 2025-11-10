@@ -1,3 +1,3 @@
 przejrzyj projekt i znajdź zmiany od ostatniego git  commit.
 
-przgotuj commit messages w formacie Conventional Commits (tu uzyj języka angielskiego) i wyślij do git,
+przgotuj commit messages w formacie Conventional Commits (w języku angielskim) i wyślij zmiany do git,
