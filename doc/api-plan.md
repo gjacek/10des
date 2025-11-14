@@ -77,7 +77,7 @@ Endpoints are designed using RESTful principles, leveraging Django REST Framewor
   - Response JSON: 
     ```json
     {
-      "message": "Reset email sent."
+      "message": "Wysłano email z informacjami o resecie hasła."
     }
     ```
   - Success: 200 OK.
@@ -347,7 +347,9 @@ Endpoints are designed using RESTful principles, leveraging Django REST Framewor
 
 ## 3. Authentication and Authorization
 
-- **Mechanism**: JWT (JSON Web Tokens) using Django REST Framework's JWT addon or djangorestframework-simplejwt. Tokens obtained on login, included in Authorization header: `Bearer <token>`.
+- **Mechanism**: 
+  - **Default (API)**: JWT (JSON Web Tokens) using Django REST Framework's JWT addon or djangorestframework-simplejwt. Tokens are obtained on login and included in the Authorization header as `Bearer <token>`.
+  - **Optional (Web Only)**: Django session authentication can be enabled for server-rendered views or web users. Session-based authentication should only be used for web access and not for stateless API consumption.
 - **Implementation Details**:
   - Public endpoints (e.g., GET /api/courses/) allow anonymous access for visible courses.
   - Protected endpoints use DRF permissions: IsAuthenticated for general access, IsInstructor (custom permission checking is_instructor and ownership) for course/lesson management.
