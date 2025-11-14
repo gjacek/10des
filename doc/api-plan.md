@@ -339,6 +339,25 @@ Endpoints are designed using RESTful principles, leveraging Django REST Framewor
   - Success: 204.
   - Errors: 400 - "Cannot remove non-approved."
 
+- **POST /api/courses/{course_id}/enrollments/bulk-update/**
+  - Description: Bulk update enrollment statuses (e.g., approve, reject). Instructor only.
+  - Request JSON:
+    ```json
+    {
+      "enrollment_ids": [integer, integer, ...],
+      "action": "approve" | "reject"
+    }
+    ```
+  - Response JSON:
+    ```json
+    {
+      "message": "Enrollments updated successfully.",
+      "updated_count": integer
+    }
+    ```
+  - Success: 200 OK.
+  - Errors: 400 Bad Request - "Invalid action or IDs.", 403 Forbidden.
+
 - **GET /api/users/me/enrollments/**
   - Description: List user's enrollments (Student only, approved courses).
   - Query Parameters: `status=approved`.
