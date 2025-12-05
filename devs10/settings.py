@@ -27,7 +27,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+STATIC_ROOT = BASE_DIR / 'productionfiles'
 
+STATIC_URL = 'static/'
 # Application definition
 
 INSTALLED_APPS = [
@@ -48,6 +50,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'kursy.middleware.AuthMiddleware',
 ]
 
 ROOT_URLCONF = 'devs10.urls'
