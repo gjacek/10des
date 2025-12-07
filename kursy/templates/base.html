@@ -1,0 +1,215 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}Platforma Kursowa{% endblock %}</title>
+    
+    <!-- Pico.css -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        /* Sticky Footer */
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main {
+            flex-grow: 1;
+        }
+
+        /* Toast Notifications */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 350px;
+            width: 100%;
+        }
+        .toast {
+            padding: 1rem;
+            border-radius: var(--pico-border-radius);
+            box-shadow: var(--pico-box-shadow);
+            background-color: var(--pico-card-background-color);
+            border: 1px solid var(--pico-card-border-color);
+            animation: slideIn 0.3s ease-out;
+        }
+        .toast.success { border-left: 5px solid var(--pico-color-green-500); }
+        .toast.error { border-left: 5px solid var(--pico-color-red-500); }
+        .toast.info { border-left: 5px solid var(--pico-color-blue-500); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="container-fluid">
+
+    <noscript>
+        <article class="container">
+            <header><strong>Wymagany JavaScript</strong></header>
+            <p>Ta aplikacja wymaga włączonej obsługi JavaScript do poprawnego działania (logowanie, nawigacja, interakcje).</p>
+            <footer>Proszę włączyć JavaScript w ustawieniach przeglądarki i odświeżyć stronę.</footer>
+        </article>
+    </noscript>
+
+    <!-- API Client & Auth Store Initialization -->
+    <script>
+        // Global API Client Helper
+        window.apiClient = async (url, options = {}) => {
+            const authStore = Alpine.store('auth');
+            const headers = {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                ...options.headers
+            };
+
+            if (authStore.token) {
+                headers['Authorization'] = `Bearer ${authStore.token}`;
+            }
+
+            const config = {
+                ...options,
+                headers
+            };
+
+            try {
+                const response = await fetch(url, config);
+                
+                if (response.status === 401) {
+                    // Unauthorized - clear token and redirect
+                    authStore.logout();
+                    window.dispatchNotify('Sesja wygasła. Zaloguj się ponownie.', 'error');
+                    return response;
+                }
+
+                return response;
+            } catch (error) {
+                console.error('API Error:', error);
+                window.dispatchNotify('Wystąpił błąd połączenia.', 'error');
+                throw error;
+            }
+        };
+
+        // Notification Helper
+        window.dispatchNotify = (message, type = 'info') => {
+            window.dispatchEvent(new CustomEvent('notify', { detail: { message, type } }));
+        };
+
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('auth', {
+                user: null,
+                token: null,
+                
+                init() {
+                    this.token = localStorage.getItem('auth_token');
+                    const userData = localStorage.getItem('user_data');
+                    if (userData) {
+                        try {
+                            this.user = JSON.parse(userData);
+                        } catch (e) {
+                            console.error("Error parsing user data:", e);
+                            this.logout();
+                        }
+                    }
+                },
+                
+                get isLoggedIn() { return !!this.token; },
+                get isInstructor() { return this.user?.is_instructor || false; },
+                get isStudent() { return this.user && !this.user.is_instructor; },
+
+                logout() {
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                    this.token = null;
+                    this.user = null;
+                    window.location.href = '/'; 
+                }
+            });
+        });
+    </script>
+
+    <!-- Navbar -->
+    <nav x-data class="container-fluid">
+        <ul>
+            <li><strong><a href="/" class="contrast">Platforma Kursowa</a></strong></li>
+        </ul>
+        <ul>
+            <!-- Guest Links -->
+            <template x-if="!$store.auth.isLoggedIn">
+                {# TODO: Przywrócić {% url 'login' %} gdy widok powstanie #}
+                <li><a href="#" role="button" class="outline">Zaloguj</a></li>
+            </template>
+            <template x-if="!$store.auth.isLoggedIn">
+                {# TODO: Przywrócić {% url 'register' %} gdy widok powstanie #}
+                <li><a href="#" role="button">Zarejestruj</a></li>
+            </template>
+
+            <!-- Student Links -->
+            <template x-if="$store.auth.isLoggedIn && $store.auth.isStudent">
+                {# TODO: Przywrócić {% url 'student_dashboard' %} #}
+                <li><a href="#">Moje Kursy</a></li>
+            </template>
+            <template x-if="$store.auth.isLoggedIn && $store.auth.isStudent">
+                {# TODO: Przywrócić {% url 'course_list' %} #}
+                <li><a href="#">Dostępne Kursy</a></li>
+            </template>
+
+            <!-- Instructor Links -->
+            <template x-if="$store.auth.isLoggedIn && $store.auth.isInstructor">
+                {# TODO: Przywrócić {% url 'instructor_dashboard' %} #}
+                <li><a href="#">Panel Instruktora</a></li>
+            </template>
+
+            <!-- User Dropdown / Logout -->
+            <template x-if="$store.auth.isLoggedIn">
+                <li>
+                    <details class="dropdown">
+                        <summary x-text="$store.auth.user?.first_name || 'Konto'"></summary>
+                        <ul dir="rtl">
+                            <li><a href="#" @click.prevent="$store.auth.logout()">Wyloguj</a></li>
+                        </ul>
+                    </details>
+                </li>
+            </template>
+        </ul>
+    </nav>
+
+    <!-- Toast Container -->
+    <div id="toast-container" x-data="{ notifications: [] }" 
+         @notify.window="notifications.push($event.detail); setTimeout(() => notifications.shift(), 5000)">
+        <template x-for="(note, index) in notifications" :key="index">
+            <div class="toast" :class="note.type">
+                <span x-text="note.message"></span>
+            </div>
+        </template>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="container">
+        <small>Copyright 2025 Platforma Kursowa</small>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

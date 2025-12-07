@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Zaloguj się - Platforma Kursowa{% endblock %}
+
+{% block content %}
+<article style="max-width: 500px; margin: 2rem auto;">
+    <hgroup>
+        <h1>Witaj ponownie</h1>
+        <p>Zaloguj się do swojego konta</p>
+    </hgroup>
+
+    <form 
+        x-data="loginForm()" 
+        @submit.prevent="submit"
+        x-cloak
+    >
+        <!-- Error Message -->
+        <div 
+            x-show="errorMessage" 
+            x-transition
+            role="alert"
+            style="margin-bottom: 1rem;"
+        >
+            <small x-text="errorMessage" style="color: var(--pico-color-red-500);"></small>
+        </div>
+
+        <!-- Email Input -->
+        <label for="email">
+            Adres e-mail
+            <input 
+                type="email" 
+                id="email" 
+                name="email" 
+                x-model="formData.email"
+                @input="errorMessage = null"
+                placeholder="twoj.email@example.com"
+                required
+                :disabled="isLoading"
+                autocomplete="email"
+            >
+        </label>
+
+        <!-- Password Input -->
+        <label for="password">
+            Hasło
+            <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                x-model="formData.password"
+                @input="errorMessage = null"
+                placeholder="Wprowadź hasło"
+                required
+                :disabled="isLoading"
+                autocomplete="current-password"
+            >
+        </label>
+
+        <!-- Submit Button -->
+        <button 
+            type="submit" 
+            :aria-busy="isLoading"
+            :disabled="isLoading"
+        >
+            <span x-show="!isLoading">Zaloguj się</span>
+            <span x-show="isLoading">Logowanie...</span>
+        </button>
+
+        <!-- Footer Links -->
+        <footer style="margin-top: 1.5rem; text-align: center;">
+            <small>
+                <a href="#" class="secondary">Zapomniałeś hasła?</a>
+                &nbsp;·&nbsp;
+                <a href="#" class="secondary">Zarejestruj się</a>
+            </small>
+        </footer>
+    </form>
+</article>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function loginForm() {
+        return {
+            formData: {
+                email: '',
+                password: ''
+            },
+            isLoading: false,
+            errorMessage: null,
+            
+            async submit() {
+                // Reset error state
+                this.errorMessage = null;
+                this.isLoading = true;
+
+                try {
+                    // Get CSRF token from meta tag
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    
+                    if (!csrfToken) {
+                        throw new Error('CSRF token not found');
+                    }
+
+                    // Make API request
+                    const response = await fetch('/api/auth/login/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify(this.formData)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        // Success - store token and user data
+                        localStorage.setItem('auth_token', data.token);
+                        localStorage.setItem('user_data', JSON.stringify(data.user));
+
+                        // Dispatch notification
+                        window.dispatchNotify('Zalogowano pomyślnie!', 'success');
+
+                        // Redirect based on user role
+                        const redirectUrl = data.user.is_instructor 
+                            ? '/instructor/dashboard/' 
+                            : '/student/my-courses/';
+                        
+                        // Small delay to show success notification
+                        setTimeout(() => {
+                            window.location.href = redirectUrl;
+                        }, 500);
+
+                    } else if (response.status === 401) {
+                        // Unauthorized - invalid credentials
+                        this.errorMessage = data.detail || 'Nieprawidłowy e-mail lub hasło.';
+                        // Clear password field
+                        this.formData.password = '';
+                    } else if (response.status >= 500) {
+                        // Server error
+                        this.errorMessage = 'Błąd serwera. Spróbuj ponownie później.';
+                    } else {
+                        // Other client errors
+                        this.errorMessage = data.detail || 'Wystąpił błąd. Spróbuj ponownie.';
+                    }
+
+                } catch (error) {
+                    console.error('Login error:', error);
+                    
+                    // Network or other errors
+                    if (error.message === 'CSRF token not found') {
+                        this.errorMessage = 'Błąd konfiguracji. Odśwież stronę.';
+                    } else {
+                        this.errorMessage = 'Błąd połączenia. Sprawdź połączenie z internetem.';
+                    }
+                } finally {
+                    this.isLoading = false;
+                }
+            }
+        };
+    }
+</script>
+{% endblock %}
+
