@@ -207,3 +207,6 @@ marimo/_lsp/
 __marimo__/
 # Production artifacts
 productionfiles/
+
+# Test data and credentials
+test.txt
