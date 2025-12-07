@@ -48,8 +48,8 @@ class Command(BaseCommand):
         )
         self.stdout.write(self.style.SUCCESS(f'✓ Utworzono administratora: {admin.email}'))
 
-        self.stdout.write(self.style.SUCCESS('\n--- Dane logowania testowe ---'))
-        self.stdout.write('Student: student@test.pl / test123')
-        self.stdout.write('Instruktor: instruktor@test.pl / test123')
-        self.stdout.write('Admin: admin@test.pl / admin123')
+        self.stdout.write(self.style.WARNING('\n--- Ostrzeżenie bezpieczeństwa ---'))
+        self.stdout.write('Hasła testowe zostały ustawione i usunięte z outputu dla bezpieczeństwa.')
+        self.stdout.write('Użyj /admin/ do resetu haseł lub zmień je ręcznie w bazie danych.')
+        self.stdout.write('Domyślne hasła: sprawdź dokumentację lub użyj Django shell.')
 

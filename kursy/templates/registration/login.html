@@ -100,7 +100,7 @@
                     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
                     
                     if (!csrfToken) {
-                        throw new Error('CSRF token not found');
+                        throw new Error('CSRF token not found. Please refresh the page.');
                     }
 
                     // Make API request
