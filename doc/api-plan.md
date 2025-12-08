@@ -152,7 +152,7 @@ Endpoints are designed using RESTful principles, leveraging Django REST Framewor
 ### Courses Resource
 
 - **GET /api/courses/**
-  - Description: List public/visible courses (for students/guests). Authenticated users see enrollable courses.
+  - Description: List public/visible courses (for students). Authenticated users see enrollable courses.
   - Query Parameters: `page=integer`, `edition_id=integer` (filter), `search=string` (name/description), `is_visible=true/false`.
   - Response JSON: Paginated list with:
     ```json

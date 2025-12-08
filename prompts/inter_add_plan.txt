@@ -6,63 +6,34 @@ Najpierw przejrzyj następujące informacje:
 
 1. Product Requirements Document (PRD):
 <prd>
-{{prd}} <- zamień na referencję do pliku @prd.md
+@prd.md
 </prd>
 
 2. Tech Stack:
 <tech_stack>
-{{tech-stack}} <- zamień na referencję do pliku @tech-stack.md
+@tech-stack.md
 </tech_stack>
 
 
 3. Opis widoku:
 <view_description>
-### 1. Strona Główna / Logowanie
-*   **Ścieżka:** `/`
-*   **Główny cel:** Uwierzytelnienie użytkownika lub przekierowanie do rejestracji.
-*   **Kluczowe informacje:** Formularz logowania, link do rejestracji, link do resetu hasła.
-*   **Kluczowe komponenty:** `LoginForm` (Alpine.js) obsługujący POST `/api/auth/login/` i zapisujący token.
-*   **UX/Bezpieczeństwo:** Przekierowanie zalogowanych użytkowników do odpowiednich dashboardów. Jasne komunikaty błędów logowania.
-</view_description>
+#### 7. Widok Lekcji
+*   **Ścieżka:** `/student/courses/<int:course_id>/lessons/<int:lesson_id>/`
+*   **Główny cel:** Konsumpcja treści i pobieranie plików.
+*   **Kluczowe informacje:** Tytuł, opis, lista załączników.
+*   **Kluczowe komponenty:**
+    *   `AttachmentList`: Lista plików z metadanymi (rozmiar, typ).
+    *   `DownloadButton`: Link do endpointu API, który zlicza pobranie i serwuje plik.
+*   **UX:** Wyraźne rozróżnienie typów plików (ikony).
+
 
 4. User Stories:
 <user_stories>
-
-US-002
-Tytuł: Logowanie
-Opis: Jako użytkownik chcę zalogować się podając e-mail i hasło, aby korzystać z funkcji odpowiednich dla mojej roli.
-Kryteria akceptacji:
-- Gdy podam poprawne dane, zostaję zalogowany i przekierowany: Student do Moje Kursy, Prowadzący do Dashboardu Prowadzącego.
-- Gdy podam niepoprawne dane, pozostaję na stronie logowania z komunikatem o błędzie.
+pobierz z pliku @prd.md
 </user_stories>
 
 5. Endpoint Description:
-<endpoint_description>
-- **POST /api/auth/login/**
-  - Description: Login user and return JWT token (assuming JWT auth).
-  - Query Parameters: None.
-  - Request JSON: 
-    ```json
-    {
-      "email": "string",
-      "password": "string"
-    }
-    ```
-  - Response JSON: 
-    ```json
-    {
-      "token": "string",
-      "user": {
-        "id": integer,
-        "email": "string",
-        "is_instructor": boolean
-      }
-    }
-    ```
-  - Success: 200 OK - "Login successful."
-  - Errors: 401 Unauthorized - "Invalid credentials."
-
-</endpoint_description>
+dobierz potrzebne endpointy z pliku @api-plan.md
 
 Przed utworzeniem ostatecznego planu wdrożenia przeprowadź analizę i planowanie wewnątrz tagów <implementation_breakdown> w swoim bloku myślenia. Ta sekcja może być dość długa, ponieważ ważne jest, aby być dokładnym.
 
@@ -105,7 +76,7 @@ Po przeprowadzeniu analizy dostarcz plan wdrożenia w formacie Markdown z nastę
 
 Upewnij się, że Twój plan jest zgodny z PRD, historyjkami użytkownika i uwzględnia dostarczony stack technologiczny.
 
-Ostateczne wyniki powinny być w języku polskim i zapisane w pliku o nazwie .ai/{view-name}-view-implementation-plan.md. Nie uwzględniaj żadnej analizy i planowania w końcowym wyniku.
+Ostateczne wyniki powinny być w języku polskim i zapisane w pliku o nazwie doc/{view-name}-view-implementation-plan.md. Nie uwzględniaj żadnej analizy i planowania w końcowym wyniku.
 
 Oto przykład tego, jak powinien wyglądać plik wyjściowy (treść jest do zastąpienia):
 
