@@ -17,14 +17,16 @@ Najpierw przejrzyj następujące informacje:
 
 3. Opis widoku:
 <view_description>
-#### 7. Widok Lekcji
-*   **Ścieżka:** `/student/courses/<int:course_id>/lessons/<int:lesson_id>/`
-*   **Główny cel:** Konsumpcja treści i pobieranie plików.
-*   **Kluczowe informacje:** Tytuł, opis, lista załączników.
+#### 12. Zarządzanie Zapisami
+*   **Ścieżka:** `/instructor/courses/<int:id>/enrollments/`
+*   **Główny cel:** Decydowanie o dostępie studentów do kursu.
+*   **Kluczowe informacje:** Listy studentów podzielone na statusy.
 *   **Kluczowe komponenty:**
-    *   `AttachmentList`: Lista plików z metadanymi (rozmiar, typ).
-    *   `DownloadButton`: Link do endpointu API, który zlicza pobranie i serwuje plik.
-*   **UX:** Wyraźne rozróżnienie typów plików (ikony).
+    *   `EnrollmentTabs`: Przełącznik widoków (Oczekujący | Zapisani | Odrzuceni).
+    *   `BulkActionsTable`: Tabela z checkboxami umożliwiająca grupowe akceptowanie/odrzucanie.
+    *   `ActionButtons`: Akceptuj, Odrzuć, Przywróć, Usuń (zależnie od zakładki).
+
+</view_description>
 
 
 4. User Stories:

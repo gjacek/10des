@@ -1,0 +1,28 @@
+[1mdiff --git a/prompts/inter_add_plan.txt b/prompts/inter_add_plan.txt[m
+[1mindex 68cd344..57d6988 100644[m
+[1m--- a/prompts/inter_add_plan.txt[m
+[1m+++ b/prompts/inter_add_plan.txt[m
+[36m@@ -17,14 +17,16 @@[m [mNajpierw przejrzyj następujące informacje:[m
+ [m
+ 3. Opis widoku:[m
+ <view_description>[m
+[31m-#### 7. Widok Lekcji[m
+[31m-*   **Ścieżka:** `/student/courses/<int:course_id>/lessons/<int:lesson_id>/`[m
+[31m-*   **Główny cel:** Konsumpcja treści i pobieranie plików.[m
+[31m-*   **Kluczowe informacje:** Tytuł, opis, lista załączników.[m
+[32m+[m[32m#### 12. Zarządzanie Zapisami[m
+[32m+[m[32m*   **Ścieżka:** `/instructor/courses/<int:id>/enrollments/`[m
+[32m+[m[32m*   **Główny cel:** Decydowanie o dostępie studentów do kursu.[m
+[32m+[m[32m*   **Kluczowe informacje:** Listy studentów podzielone na statusy.[m
+ *   **Kluczowe komponenty:**[m
+[31m-    *   `AttachmentList`: Lista plików z metadanymi (rozmiar, typ).[m
+[31m-    *   `DownloadButton`: Link do endpointu API, który zlicza pobranie i serwuje plik.[m
+[31m-*   **UX:** Wyraźne rozróżnienie typów plików (ikony).[m
+[32m+[m[32m    *   `EnrollmentTabs`: Przełącznik widoków (Oczekujący | Zapisani | Odrzuceni).[m
+[32m+[m[32m    *   `BulkActionsTable`: Tabela z checkboxami umożliwiająca grupowe akceptowanie/odrzucanie.[m
+[32m+[m[32m    *   `ActionButtons`: Akceptuj, Odrzuć, Przywróć, Usuń (zależnie od zakładki).[m
+[32m+[m
+[32m+[m[32m</view_description>[m
+ [m
+ [m
+ 4. User Stories:[m
