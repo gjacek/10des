@@ -3,7 +3,7 @@ Serializery dla API REST aplikacji kursowej.
 """
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import CustomUser
+from .models import CustomUser, Course, CourseEdition, Enrollment
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -100,3 +100,45 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         return user
 
+
+class CourseEditionSerializer(serializers.ModelSerializer):
+    """
+    Serializer dla edycji kursu.
+    """
+    class Meta:
+        model = CourseEdition
+        fields = ['id', 'name']
+
+
+class CourseSerializer(serializers.ModelSerializer):
+    """
+    Serializer dla modelu Course.
+    """
+    edition = CourseEditionSerializer(read_only=True)
+    edition_id = serializers.PrimaryKeyRelatedField(
+        queryset=CourseEdition.objects.all(), source='edition', write_only=True
+    )
+    instructor = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Course
+        fields = ['id', 'name', 'description', 'is_visible', 'edition', 'edition_id', 'instructor']
+        read_only_fields = ['id', 'instructor']
+
+    def create(self, validated_data):
+        # Assign instructor from context request user
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['instructor'] = request.user
+        return super().create(validated_data)
+
+
+class EnrollmentSerializer(serializers.ModelSerializer):
+    """
+    Serializer dla zapisów na kurs.
+    """
+    student = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Enrollment
+        fields = ['id', 'status', 'student']
