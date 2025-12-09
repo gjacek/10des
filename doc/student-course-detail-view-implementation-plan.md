@@ -104,7 +104,7 @@ Widok nie korzysta z REST API (AJAX) do pobierania głównych danych, lecz z bez
     *   Użytkownik musi mieć rekord `Enrollment` dla tego kursu ze statusem `approved`.
 *   **Walidacja danych:**
     *   Jeśli kurs nie istnieje -> 404.
-    *   Jeśli kurs jest ukryty (przez instruktora), a student jest zapisany -> Student nadal powinien mieć dostęp (wg US-024 ukryty kurs znika z "Dostępne", ale w "Moje Kursy" US-018 mówi o ukrywaniu, jednak US-021 mówi o dostępie. Decyzja: Student widzi kurs w "Moje Kursy" tylko jeśli jest aktywny, ale jeśli ma bezpośredni link, weryfikujemy czy kurs nie jest zablokowany systemowo. Przyjmujemy: dostęp jest możliwy jeśli enrollment jest approved, chyba że logika biznesowa nakazuje inaczej). *Korekta wg PRD US-024:* "Ukryty kurs znika z Dostępne Kursy i z widoków Studentów (także zapisanych)". **Wniosek:** Jeśli kurs jest `is_visible=False`, student otrzymuje 404 lub 403, nawet jeśli jest zapisany.
+    *   Jeśli kurs jest ukryty (`is_visible=False`) -> 404 Not Found (zgodnie z US-024, kurs znika z widoków studenta, nawet jeśli jest zapisany). To zapobiega domyślaniu się istnienia ukrytych zasobów.
 
 ## 10. Obsługa błędów
 *   **404 Not Found:** Gdy `id` kursu jest nieprawidłowe.

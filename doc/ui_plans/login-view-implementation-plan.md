@@ -2,7 +2,7 @@
 
 ## 1. Przegląd
 
-Widok logowania służy jako punkt wejścia do aplikacji dla użytkowników (Studentów i Prowadzących). Jego głównym celem jest uwierzytelnienie użytkownika za pomocą adresu e-mail i hasła, pobranie tokena JWT oraz przekierowanie do odpowiedniego pulpitu nawigacyjnego w zależności od roli użytkownika (Student lub Prowadzący). Widok wykorzystuje minimalistyczny styl Pico.css oraz Alpine.js do obsługi logiki po stronie klienta.
+Widok logowania służy jako punkt wejścia do aplikacji dla użytkowników (Studentów i Prowadzących). Jego głównym celem jest uwierzytelnienie użytkownika za pomocą adresu e-mail i hasła (Session Authentication) oraz przekierowanie do odpowiedniego pulpitu nawigacyjnego w zależności od roli użytkownika (Student lub Prowadzący). Widok wykorzystuje minimalistyczny styl Pico.css oraz Alpine.js do obsługi logiki po stronie klienta.
 
 ## 2. Routing widoku
 
@@ -67,7 +67,7 @@ Poniższe definicje typów opisują struktury danych używane w komunikacji z AP
 **LoginResponse (JSON success):**
 ```json
 {
-  "token": "string (JWT)",
+  "detail": "Login successful",
   "user": {
     "id": "integer",
     "email": "string",
@@ -89,7 +89,7 @@ Zarządzanie stanem odbywa się lokalnie w komponencie Alpine.js (`x-data`).
 
 *   **Stan formularza:** Przechowywany w obiekcie `formData`.
 *   **Stan UI:** Zmienne `isLoading` (do blokowania przycisku) oraz `errorMessage` (do wyświetlania alertów).
-*   **Stan sesji:** Po pomyślnym zalogowaniu, token JWT jest zapisywany w `localStorage` pod kluczem `auth_token` (zgodnie z założeniem MVP, choć docelowo warto rozważyć HttpOnly cookies).
+*   **Stan sesji:** Po pomyślnym zalogowaniu serwer ustawia ciasteczko sesyjne (`sessionid`). Klient nie musi ręcznie zarządzać tokenem.
 
 Definicja komponentu Alpine:
 ```javascript
@@ -115,7 +115,7 @@ function loginForm() {
     *   `X-CSRFToken`: Pobierany z ciasteczka `csrftoken` (standard Django), wymagany dla bezpieczeństwa, nawet przy API.
 *   **Metoda:** `fetch`
 *   **Obsługa odpowiedzi:**
-    *   **200 OK:** Parsowanie JSON, zapis tokena, sprawdzenie flagi `is_instructor`, przekierowanie.
+    *   **200 OK:** Parsowanie JSON, sprawdzenie flagi `is_instructor`, przekierowanie.
     *   **401 Unauthorized:** Wyświetlenie komunikatu "Nieprawidłowy e-mail lub hasło".
     *   **Inne błędy:** Wyświetlenie ogólnego komunikatu "Wystąpił błąd serwera".
 

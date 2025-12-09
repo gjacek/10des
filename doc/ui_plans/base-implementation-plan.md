@@ -2,7 +2,7 @@
 
 ## 1. Przegląd
 
-Szablon `base.html` stanowi szkielet HTML dla wszystkich podstron aplikacji. Zapewnia spójny układ graficzny oparty na **Pico.css**, ładuje niezbędne biblioteki (Alpine.js), definiuje globalną nawigację (Navbar) reagującą na stan uwierzytelnienia (JWT w `localStorage`) oraz udostępnia kontenery na komunikaty systemowe (Toasts) i główną treść.
+Szablon `base.html` stanowi szkielet HTML dla wszystkich podstron aplikacji. Zapewnia spójny układ graficzny oparty na **Pico.css**, ładuje niezbędne biblioteki (Alpine.js), definiuje globalną nawigację (Navbar) reagującą na stan uwierzytelnienia (renderowany przez Django) oraz udostępnia kontenery na komunikaty systemowe (Toasts) i główną treść.
 
 ## 2. Lokalizacja pliku
 
@@ -40,14 +40,14 @@ Document (html)
 *   **Font:** Domyślny systemowy stack czcionek (zgodnie z filozofią Pico).
 
 ### `Navbar` (Komponent Alpine.js)
-*   **Opis:** Pasek nawigacyjny zmieniający się dynamicznie w zależności od tego, czy użytkownik posiada token JWT i jaką ma rolę.
-*   **Atrybuty:** `x-data` odwołujące się do globalnego store'a (np. `Alpine.store('auth')`).
+*   **Opis:** Pasek nawigacyjny renderowany przez Django na podstawie `request.user`. Alpine.js może zarządzać tylko interaktywnością (np. dropdown na mobile).
+*   **Logika wyświetlania:** Wykorzystuje tagi szablonu `{% if user.is_authenticated %}` oraz `{% if user.is_instructor %}`.
 *   **Logika wyświetlania:**
     *   **Gość:** Widzi Logo, link "Zaloguj" i "Zarejestruj".
     *   **Student:** Widzi Logo, "Moje Kursy", "Dostępne Kursy", Dropdown Użytkownika (Wyloguj).
     *   **Prowadzący:** Widzi Logo, "Dashboard", Dropdown Użytkownika (Wyloguj).
 *   **Elementy interaktywne:**
-    *   Przycisk Wyloguj: Wywołuje funkcję czyszczącą `localStorage` i przekierowującą na stronę główną.
+    *   Przycisk Wyloguj: Formularz POST do `/logout/` (standard Django) lub link wywołujący wylogowanie.
 
 ### `ToastContainer`
 *   **Opis:** Kontener umieszczony w prawym górnym lub dolnym rogu (position: fixed), wyświetlający powiadomienia.
@@ -58,50 +58,18 @@ Document (html)
 
 ## 5. Typy i Dane Globalne
 
-Mimo że jest to HTML, Alpine.js będzie operował na strukturze danych użytkownika przechowywanej w przeglądarce.
+Dane użytkownika są dostępne w szablonie jako zmienna `user`. Można je przekazać do Alpine.js (jeśli potrzebne) za pomocą filtra `json_script`.
 
-### AuthUser (w LocalStorage)
-```javascript
-{
-  "token": "string (JWT)",
-  "user": {
-    "id": number,
-    "email": "string",
-    "is_instructor": boolean,
-    "first_name": "string",
-    "last_name": "string"
-  }
-}
-```
+## 6. Zarządzanie stanem
 
-## 6. Zarządzanie stanem (Alpine.js Store)
-
-W pliku `base.html` (lub dołączonym `main.js`) należy zainicjować globalny store Alpine do zarządzania tożsamością.
+Stan uwierzytelnienia jest zarządzany przez sesję Django. Nie jest wymagany globalny store Alpine.js do przechowywania tokena.
+Jeśli potrzebna jest interaktywność zależna od roli w JS (np. ukrywanie elementów bez przeładowania), można zainicjować prosty store:
 
 ```javascript
 document.addEventListener('alpine:init', () => {
     Alpine.store('auth', {
-        user: null,
-        token: null,
-        
-        init() {
-            // Pobranie danych z localStorage przy starcie
-            this.token = localStorage.getItem('auth_token');
-            const userData = localStorage.getItem('user_data');
-            if (userData) this.user = JSON.parse(userData);
-        },
-        
-        get isLoggedIn() { return !!this.token; },
-        get isInstructor() { return this.user?.is_instructor || false; },
-        get isStudent() { return this.user && !this.user.is_instructor; },
-
-        logout() {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user_data');
-            this.token = null;
-            this.user = null;
-            window.location.href = '/'; // Przekierowanie do logowania
-        }
+        // Wartości wstrzyknięte z szablonu, np. <script id="auth-data" type="application/json">...</script>
+        isLoggedIn: document.body.dataset.auth === 'true',
     });
 });
 ```
@@ -110,8 +78,8 @@ document.addEventListener('alpine:init', () => {
 
 Szablon bazowy powinien dołączyć prosty skrypt narzędziowy (`api-client.js` lub inline), który:
 1.  Przechwytuje każde wywołanie `fetch` (opcjonalnie wrapper).
-2.  Dodaje nagłówek `Authorization: Bearer <token>` jeśli token istnieje.
-3.  Nasłuchuje odpowiedzi `401 Unauthorized` i w razie wystąpienia wymusza wylogowanie (`auth.logout()`).
+2.  Dodaje nagłówek `X-CSRFToken` pobrany z ciasteczka `csrftoken` (dla metod POST/PUT/PATCH/DELETE).
+3.  Nasłuchuje odpowiedzi `401/403` i w razie wystąpienia przekierowuje na login.
 
 ## 8. Interakcje użytkownika
 

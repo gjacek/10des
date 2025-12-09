@@ -9,43 +9,34 @@ Widok ten umożliwia studentowi zapoznanie się z treścią pojedynczej lekcji w
 *   **Widok Django:** `StudentLessonDetailView` (renderujący szablon `kursy/student/lesson_detail.html`)
 
 ## 3. Struktura komponentów
-Widok zostanie zbudowany jako szablon Django wykorzystujący Alpine.js do pobrania i wyświetlenia szczegółowych danych z API.
+Widok zostanie zbudowany jako standardowy szablon Django (SSR). Alpine.js może być użyty do drobnych interakcji (np. zamykanie alertów), ale dane są renderowane przez serwer.
 
 Hierarchia:
 *   `BaseTemplate` (layout, navbar)
-    *   `LessonDetailContainer` (główny kontener, inicjalizacja Alpine.js)
-        *   `Breadcrumbs` (nawigacja okruszkowa: Moje Kursy > Kurs > Lekcja)
-        *   `LessonHeader` (Tytuł, data)
-        *   `LessonContent` (Opis tekstowy)
-        *   `AttachmentsSection` (Sekcja materiałów do pobrania)
+    *   `LessonDetailContainer` (główny kontener)
+        *   `Breadcrumbs` (nawigacja okruszkowa)
+        *   `LessonHeader` (Tytuł, data - tagi `{{ lesson.title }}`)
+        *   `LessonContent` (Opis tekstowy - tag `{{ lesson.description }}`)
+        *   `AttachmentsSection` (Sekcja materiałów do pobrania - pętla `{% for %}`)
             *   `AttachmentList`
-                *   `AttachmentItem` (Ikona, nazwa, rozmiar, przycisk pobierania)
+                *   `AttachmentItem` (Ikona, nazwa, rozmiar, link pobierania)
 
 ## 4. Szczegóły komponentów
 
-### `LessonDetailContainer` (x-data="lessonDetail")
-*   **Opis:** Komponent zarządzający stanem widoku, pobieraniem danych z API i obsługą błędów.
-*   **Główne elementy:** `div` otaczający całą treść.
-*   **Obsługiwane zdarzenia:** `init` (pobranie danych lekcji).
-*   **Warunki walidacji:** Sprawdzenie, czy `course_id` i `lesson_id` są poprawnymi liczbami.
-*   **Stan:** `isLoading`, `lesson`, `error`.
-
-### `Breadcrumbs`
-*   **Opis:** Statyczna lub dynamiczna nawigacja powrotna.
-*   **Elementy:** Link do Dashboardu, Link do szczegółów kursu, Tytuł bieżącej lekcji (tekst).
+### `LessonDetailContainer`
+*   **Opis:** Główny kontener wyświetlający treść lekcji.
+*   **Dane (Context):** Obiekt `lesson` (z relacją `attachments`).
 
 ### `AttachmentsSection`
-*   **Opis:** Kontener wyświetlający listę załączników, jeśli istnieją.
-*   **Elementy:** Nagłówek "Materiały do pobrania", lista `ul` lub `div` dla kafelków.
-*   **Logika:** Ukryty, jeśli `lesson.attachments` jest puste.
+*   **Opis:** Kontener wyświetlający listę załączników.
+*   **Warunki:** Wyświetlany tylko jeśli `lesson.attachments.exists()`.
+*   **Elementy:** Pętla `{% for attachment in lesson.attachments.all %}`.
 
 ### `AttachmentItem`
 *   **Opis:** Pojedynczy element reprezentujący plik.
 *   **Elementy:**
-    *   Ikona zależna od typu pliku (PDF, ZIP, DOCX, inne).
-    *   Nazwa pliku (`original_filename`).
-    *   Przycisk/Link "Pobierz".
-*   **Interakcje:** Kliknięcie w link pobierania (bezpośredni link do API endpointu pobierania lub obsługa przez `window.open`).
+    *   Nazwa pliku (`{{ attachment.original_filename }}`)
+    *   Link "Pobierz" (`<a href="...">`) prowadzący do widoku pobierania.
 
 ## 5. Typy
 
@@ -86,35 +77,23 @@ interface AttachmentDTO {
 }
 ```
 
-## 6. Zarządzanie stanem
-Stan widoku jest zarządzany lokalnie przez komponent Alpine.js (`x-data="lessonDetail(courseId, lessonId)"`).
-*   Dane lekcji są pobierane w hooku `init()`.
-*   Token autoryzacji jest pobierany z `localStorage` (obsługa przez `ApiHandler` lub helper).
+## 6. Zarządzanie stanem (SSR)
+Stan widoku jest w całości zarządzany przez serwer. Dane są pobierane w widoku Django i przekazywane do szablonu.
 
 ## 7. Integracja API
 
-### Pobranie szczegółów lekcji
-*   **Endpoint:** `GET /api/courses/{course_id}/lessons/{lesson_id}/`
-*   **Wymagane nagłówki:** `Authorization: Bearer <token>`
-*   **Odpowiedź sukcesu (200):** Obiekt JSON zgodny z `LessonDetailDTO`.
-*   **Błędy:**
-    *   `403 Forbidden`: Użytkownik nie jest zapisany na kurs lub lekcja nie jest opublikowana.
-    *   `404 Not Found`: Lekcja nie istnieje.
+Widok lekcji nie korzysta z API do wyświetlania treści (SSR).
 
 ### Pobieranie pliku
 *   **Endpoint:** `GET /api/attachments/{attachment_id}/download/`
-*   **Metoda:** GET (tradycyjny link `href` lub `window.open`, aby przeglądarka obsłużyła pobieranie pliku). Endpoint ten powinien zliczyć pobranie i zwrócić strumień pliku.
-*   **Uwaga:** Jeśli endpoint wymaga tokena w nagłówku (Bearer), nie można użyć zwykłego linku `<a>`. W takim przypadku należy użyć `fetch` z `blob()` i utworzyć tymczasowy link URL (`URL.createObjectURL`), lub przekazać token w query param (jeśli API na to pozwala - mniej bezpieczne), lub użyć mechanizmu cookies sesyjnych (jeśli wdrożony). **Decyzja:** Zgodnie z planem API i architekturą ("Token JWT przechowywany w localStorage"), standardowe linki nie zadziałają dla chronionego endpointu bez cookies.
-    *   *Rozwiązanie:* Funkcja `downloadFile(attachmentId)` w Alpine.js, która wykonuje `fetch` z nagłówkiem Auth, pobiera Bloba i wymusza pobranie w przeglądarce.
+*   **Metoda:** Standardowy link GET.
+*   **Autoryzacja:** Cookie sesyjne. Widok Django sprawdza uprawnienia (czy student jest zapisany na kurs).
+*   **Odpowiedź:** Strumień pliku (`FileResponse`) z nagłówkiem `Content-Disposition: attachment`.
 
 ## 8. Interakcje użytkownika
-1.  **Wejście na stronę:** Wyświetlenie szkieletu (loader).
-2.  **Załadowanie danych:** Wyświetlenie tytułu, opisu i listy plików.
-3.  **Kliknięcie "Pobierz" przy pliku:**
-    *   Wywołanie funkcji pobierania.
-    *   (Opcjonalnie) Zmiana stanu przycisku na "Pobieranie...".
-    *   Rozpoczęcie pobierania pliku przez przeglądarkę.
-4.  **Błąd ładowania:** Wyświetlenie komunikatu błędu i przycisku powrotu do kursu.
+1.  **Wejście na stronę:** Serwer renderuje stronę z treścią lekcji.
+2.  **Kliknięcie "Pobierz" przy pliku:** Przeglądarka rozpoczyna pobieranie pliku.
+3.  **Błąd dostępu:** Jeśli użytkownik nie ma uprawnień, widzi stronę błędu 403.
 
 ## 9. Warunki i walidacja
 *   **Uprawnienia:** Frontend polega na walidacji API (kod 403). Jeśli API zwróci 403, wyświetlany jest komunikat "Brak dostępu do tej lekcji".
@@ -137,11 +116,9 @@ Stan widoku jest zarządzany lokalnie przez komponent Alpine.js (`x-data="lesson
     *   Utworzyć plik `kursy/templates/kursy/student/lesson_detail.html` dziedziczący po `base.html`.
     *   Zaimplementować strukturę HTML z klasami Pico.css.
 
-3.  **Logika Frontend (Alpine.js):**
-    *   Zdefiniować komponent `lessonDetail`.
-    *   Zaimplementować funkcję `init` pobierającą dane z `/api/courses/...`.
-    *   Zaimplementować funkcję `downloadFile` obsługującą pobieranie z autoryzacją (Blob).
-    *   Dodać logikę wyboru ikony na podstawie rozszerzenia pliku.
+3.  **Logika Frontend (Minimalna):**
+    *   Opcjonalnie Alpine.js do drobnych interakcji (np. potwierdzenia).
+    *   Główna logika (renderowanie) w szablonie Django.
 
 4.  **Testy Manualne:**
     *   Zalogować się jako Student przypisany do kursu -> wejść w lekcję -> sprawdzić dane i pobieranie.

@@ -9,34 +9,28 @@ Widok "Moje Kursy" (Dashboard Studenta) służy do wyświetlania listy kursów, 
 *   **Plik widoku (Django):** `devs10/kursy/views.py` (lub `apps/student/views.py` w zależności od struktury)
 
 ## 3. Struktura komponentów
-Widok zostanie zrealizowany w modelu hybrydowym: szablon Django (struktura) + Alpine.js (logika pobierania danych i stan).
+Widok oparty na standardowym szablonie Django (Server-Side Rendering). Alpine.js może być użyty opcjonalnie do drobnych interakcji UI, ale główne dane są renderowane przez serwer.
 
 *   `base.html` (Layout główny)
     *   `my_courses.html` (Główny szablon widoku)
-        *   `Container` (Alpine `x-data="myCoursesData"`)
-            *   `PageHeader` (Tytuł)
-            *   `LoadingState` (Spinner/Skeleton)
-            *   `ErrorState` (Komunikat błędu)
-            *   `EmptyState` (Gdy brak kursów)
-            *   `CourseGrid` (Siatka kart)
-                *   `CourseCard` (Komponent karty kursu - pętla `x-for`)
+        *   `PageHeader` (Tytuł)
+        *   `EmptyState` (Warunek `{% if not courses %}`)
+        *   `CourseGrid` (Siatka kart - pętla `{% for %}`)
+            *   `CourseCard` (Komponent karty kursu)
 
 ## 4. Szczegóły komponentów
 
 ### `my_courses.html` (Główny Kontener)
-*   **Opis:** Główny szablon renderowany przez Django. Inicjuje stan Alpine.js.
-*   **Główne elementy:** `div` z atrybutem `x-data="myCoursesData()"`.
-*   **Obsługiwane zdarzenia:** `x-init` (automatyczne pobranie kursów po załadowaniu).
-*   **Walidacja:** Sprawdzenie tokena autoryzacji (w `ApiHandler`).
+*   **Opis:** Główny szablon renderowany przez Django.
+*   **Dane (Context):** Lista obiektów `courses` przekazana z widoku.
 
 ### `CourseCard` (Element listy)
 *   **Opis:** Karta prezentująca pojedynczy kurs.
 *   **Główne elementy:**
-    *   Nazwa kursu (`h3`)
-    *   Edycja (`badge`/`span`)
-    *   Prowadzący (`p`)
-    *   Przycisk "Przejdź do kursu" (Link `a`).
-*   **Propsy (w kontekście Alpine):** Obiekt `course` przekazywany w pętli `x-for`.
+    *   Nazwa kursu (`{{ course.name }}`)
+    *   Edycja (`{{ course.edition.name }}`)
+    *   Prowadzący (`{{ course.instructor.get_full_name }}`)
+    *   Przycisk "Przejdź do kursu" (Link `{% url ... %}`).
 
 ### `EmptyState`
 *   **Opis:** Komponent wyświetlany, gdy lista kursów jest pusta (i nie ma błędów/ładowania).
@@ -69,46 +63,25 @@ interface CourseViewModel {
 }
 ```
 
-## 6. Zarządzanie stanem (Alpine.js)
+## 6. Zarządzanie stanem (Django)
 
-Wykorzystany zostanie "custom logic" w postaci obiektu `Alpine.data`.
-
-**Stan (`myCoursesData`):**
-*   `courses`: `CourseViewModel[]` - lista pobranych kursów (inicjalnie pusta).
-*   `isLoading`: `boolean` - flaga ładowania (inicjalnie `true`).
-*   `error`: `string | null` - treść błędu w przypadku niepowodzenia.
+Stan widoku jest zarządzany po stronie serwera.
+*   **Pobieranie danych:** Widok Django pobiera listę kursów powiązanych z zalogowanym użytkownikiem (status `approved`).
+*   **Renderowanie:** Szablon otrzymuje gotową listę.
 
 ## 7. Integracja API
 
-**Endpoint:** `GET /api/users/me/enrollments/`
-*Uwaga: W promptcie zasugerowano endpoint `/api/courses/` (katalog), jednak zgodnie z celem widoku ("kursy do których student ma dostęp") oraz `api-plan.md`, właściwym endpointem jest lista zapisów użytkownika.*
+Widok nie korzysta z REST API do pobierania listy kursów (SSR).
+Dane są pobierane bezpośrednio z bazy danych w widoku.
 
-*   **Request:**
-    *   Headers: `Authorization: Bearer <token>`
-    *   Query Params: `status=approved` (aby pobrać tylko aktywne kursy).
-*   **Response (JSON):**
-    ```json
-    [
-      {
-        "id": 1,
-        "status": "approved",
-        "course": {
-             "id": 101,
-             "name": "Analiza Danych",
-             "edition": { "name": "2024/L" },
-             "instructor": { "first_name": "Jan", "last_name": "Kowalski" }
-        }
-      }
-    ]
-    ```
-    *(Struktura zostanie spłaszczona w JS do tablicy kursów).*
+**Zapytanie (ORM):**
+`Enrollment.objects.filter(student=request.user, status='approved').select_related('course', 'course__edition', 'course__instructor')`
 
 ## 8. Interakcje użytkownika
 
-1.  **Wejście na stronę:** Automatyczne pobranie listy kursów (`x-init`).
+1.  **Wejście na stronę:** Serwer renderuje stronę z listą kursów.
 2.  **Kliknięcie w kurs:** Przekierowanie do widoku szczegółów kursu (`/student/courses/{id}/`).
 3.  **Kliknięcie w "Zobacz dostępne kursy" (Empty State):** Przekierowanie do katalogu (`/student/courses/`).
-4.  **Obsługa błędu:** Możliwość ponowienia próby (przycisk "Spróbuj ponownie" w stanie błędu).
 
 ## 9. Warunki i walidacja
 

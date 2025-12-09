@@ -127,7 +127,7 @@ Komunikacja odbywa się z endpointem REST API.
     *   Atrybut `type="email"` dla pola e-mail.
 *   **Backend (API):**
     *   Unikalność adresu e-mail (krytyczne).
-    *   Wymagalność wszystkich pól.
+    *   Wymagalność wszystkich pól (`first_name`, `last_name` są `NOT NULL` w bazie).
     *   Siła hasła (według walidatorów Django).
 
 ## 10. Obsługa błędów

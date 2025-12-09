@@ -130,7 +130,10 @@ Sekcja załączników komunikuje się z następującymi endpointami (zdefiniowan
 *   **Tytuł:** Wymagany, max długość (z modelu).
 *   **Opis:** Wymagany.
 
-### Walidacja załączników (JS/Alpine)
+### Walidacja załączników (Backend - Security)
+*   **Wymuszona po stronie serwera:** API musi odrzucić żądanie, jeśli plik przekracza limity lub ma niedozwolone rozszerzenie (zgodnie z US-026 i US-010). Frontendowa walidacja jest tylko udogodnieniem UX.
+
+### Walidacja załączników (JS/Alpine - UX)
 *   **Ilość:** `attachments.length + newFiles.length <= 10`. Komunikat: "Maksymalnie 10 plików w lekcji."
 *   **Rozmiar:** `file.size <= 10 * 1024 * 1024` (10MB). Komunikat: "Plik X jest za duży (max 10MB)."
 *   **Typ:** Sprawdzenie rozszerzenia pliku względem białej listy: `.pdf, .zip, .pptx, .docx, .txt, .jpg, .jpeg`. Komunikat: "Niedozwolony format pliku X."

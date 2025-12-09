@@ -106,7 +106,7 @@ Metody stanu:
 
 ## 7. Integracja API
 
-Wykorzystanie endpointów zdefiniowanych w `api-plan.md`. Komunikacja via `fetch` z obsługą nagłówków autoryzacyjnych (CSRFToken dla sesji Django lub Token JWT).
+Wykorzystanie endpointów zdefiniowanych w `api-plan.md`. Komunikacja via `fetch` z obsługą nagłówków autoryzacyjnych (CSRFToken dla sesji Django).
 
 ### Pobieranie listy
 *   **Endpoint:** `GET /api/courses/{course_id}/enrollments/`
@@ -148,6 +148,7 @@ Użycie endpointu bulk-update jest preferowane dla spójności obsługi tabeli.
 
 ## 9. Warunki i walidacja
 
+*   **Transakcyjność:** Operacje `bulk-update` muszą być wykonywane w bloku `transaction.atomic`, aby zapewnić spójność danych (wszystkie albo żaden).
 *   **Walidacja wyboru:** Przyciski akcji masowych są `disabled`, gdy `selectedIds` jest puste.
 *   **Spójność akcji:**
     *   W zakładce `Pending` nie można wywołać akcji `restore` ani `delete`.
@@ -157,6 +158,8 @@ Użycie endpointu bulk-update jest preferowane dla spójności obsługi tabeli.
 
 ## 10. Obsługa błędów
 
+*   **Błąd transakcji:** Jeśli wystąpi błąd podczas operacji masowej (np. jeden rekord zablokowany), cała operacja jest wycofywana, a użytkownik widzi komunikat: "Wystąpił błąd podczas przetwarzania. Żadne zmiany nie zostały zapisane."
+*   **Błąd transakcji:** Jeśli wystąpi błąd podczas operacji masowej (np. jeden rekord zablokowany), cała operacja jest wycofywana, a użytkownik widzi komunikat: "Wystąpił błąd podczas przetwarzania. Żadne zmiany nie zostały zapisane."
 *   **Błąd sieci/API:** Wyświetlenie alertu (czerwony box) nad tabelą z komunikatem błędu (np. "Nie udało się pobrać listy", "Błąd serwera przy akceptacji").
 *   **Brak uprawnień (403):** Przekierowanie do logowania lub komunikat "Brak uprawnień".
 *   **Empty State:** Jeśli API zwróci pustą listę, wyświetlenie przyjaznego komunikatu "Brak oczekujących wniosków" zamiast pustej tabeli.

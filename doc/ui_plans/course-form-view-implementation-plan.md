@@ -148,8 +148,8 @@ Komponent komunikuje się z REST API zdefiniowanym w `doc/api-plan.md`.
 *   **Frontend (HTML5 + Alpine):**
     *   Atrybut `required` dla nazwy, opisu i edycji.
 *   **Backend (API):**
-    *   Unikalność nazwy (jeśli wymagana przez model, choć API Plan tego nie precyzuje, zwykle nazwa nie musi być unikalna globalnie, ale w ramach edycji może).
-    *   Poprawność `edition_id` (czy istnieje).
+    *   Unikalność nazwy (jeśli wymagana przez model).
+    *   Poprawność `edition_id` (musi istnieć w tabeli `courses_courseedition`).
     *   Uprawnienia: Tylko Instruktor może tworzyć/edytować kursy.
 
 ## 10. Obsługa błędów

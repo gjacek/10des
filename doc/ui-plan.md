@@ -7,7 +7,7 @@ Architektura interfejsu użytkownika opiera się na modelu hybrydowym, łącząc
 *   **Layout:** Minimalistyczny, responsywny interfejs oparty na bibliotece **Pico.css**.
 *   **Routing:** Zarządzany przez URL dispatcher Django. Każdy widok jest osobną stroną HTML.
 *   **Interaktywność:** Formularze, modale, tabele z akcjami oraz obsługa zapytań do API realizowana jest przez **Alpine.js**.
-*   **Stan aplikacji:** Token JWT przechowywany w `localStorage`. Stan widoków (np. zawartość listy studentów) pobierany asynchronicznie z API lub wstrzykiwany wstępnie przez Django context.
+*   **Stan aplikacji:** Autoryzacja oparta na sesji Django (ciasteczka `sessionid` i `csrftoken`). Stan widoków (np. zawartość listy studentów) pobierany asynchronicznie z API lub wstrzykiwany wstępnie przez Django context.
 
 System posiada dwa odrębne interfejsy w zależności od roli użytkownika (Student vs Prowadzący), ze wspólnym punktem wejścia (Logowanie/Rejestracja).
 
@@ -19,7 +19,7 @@ System posiada dwa odrębne interfejsy w zależności od roli użytkownika (Stud
 *   **Ścieżka:** `/`
 *   **Główny cel:** Uwierzytelnienie użytkownika lub przekierowanie do rejestracji.
 *   **Kluczowe informacje:** Formularz logowania, link do rejestracji, link do resetu hasła.
-*   **Kluczowe komponenty:** `LoginForm` (Alpine.js) obsługujący POST `/api/auth/login/` i zapisujący token.
+*   **Kluczowe komponenty:** `LoginForm` (Alpine.js) obsługujący POST `/api/auth/login/` (Session Auth).
 *   **UX/Bezpieczeństwo:** Przekierowanie zalogowanych użytkowników do odpowiednich dashboardów. Jasne komunikaty błędów logowania.
 
 #### 2. Rejestracja
@@ -71,7 +71,7 @@ System posiada dwa odrębne interfejsy w zależności od roli użytkownika (Stud
 *   **Kluczowe informacje:** Tytuł, opis, lista załączników.
 *   **Kluczowe komponenty:**
     *   `AttachmentList`: Lista plików z metadanymi (rozmiar, typ).
-    *   `DownloadButton`: Link do endpointu API, który zlicza pobranie i serwuje plik.
+    *   `DownloadButton`: Standardowy link HTML (`<a href="...">`) do endpointu API.
 *   **UX:** Wyraźne rozróżnienie typów plików (ikony).
 
 ---
@@ -123,7 +123,7 @@ System posiada dwa odrębne interfejsy w zależności od roli użytkownika (Stud
 ## 3. Mapa podróży użytkownika
 
 ### Scenariusz: Student zapisuje się na kurs
-1.  **Logowanie:** Użytkownik wchodzi na `/`, podaje dane, otrzymuje token JWT -> przekierowanie na `/student/my-courses/`.
+1.  **Logowanie:** Użytkownik wchodzi na `/`, podaje dane, zostaje zalogowany (sesja) -> przekierowanie na `/student/my-courses/`.
 2.  **Szukanie:** Lista jest pusta. Użytkownik klika w nawigacji "Dostępne kursy".
 3.  **Aplikacja:** Na liście znajduje kurs "Analiza Danych". Klika "Wyślij prośbę". Przycisk zmienia stan na "Oczekiwanie".
 4.  **Oczekiwanie:** Student czeka na decyzję Prowadzącego.
@@ -144,7 +144,7 @@ System posiada dwa odrębne interfejsy w zależności od roli użytkownika (Stud
 Aplikacja wykorzystuje klasyczny układ: **Górny pasek nawigacyjny (Navbar) + Główna zawartość (Container) + Stopka**.
 
 ### Navbar
-Zawartość paska nawigacyjnego jest dynamiczna i zależy od roli zalogowanego użytkownika (określanej na podstawie danych z JWT/profilu użytkownika w `localStorage`).
+Zawartość paska nawigacyjnego jest dynamiczna i zależy od roli zalogowanego użytkownika (określanej na podstawie danych z sesji/contextu Django template).
 
 *   **Dla Studenta:**
     *   Lewa strona: Logo/Nazwa (link do `/student/my-courses/`).
@@ -168,7 +168,7 @@ Dla głębszych struktur (Szczegóły kursu, lekcji) pod paskiem nawigacji wyśw
 
 Poniższe komponenty będą wielokrotnie wykorzystywane w różnych widokach:
 
-1.  **`ApiHandler` (JS Utility):** Centralny wrapper na `fetch`, który automatycznie dodaje nagłówek `Authorization: Bearer ...`, obsługuje odświeżanie tokena (opcjonalnie w v2) oraz przekierowuje na login przy błędzie 401.
+1.  **`ApiHandler` (JS Utility):** Centralny wrapper na `fetch`, który automatycznie dodaje nagłówek `X-CSRFToken` (pobrany z ciasteczka), obsługuje błędy oraz przekierowuje na login przy błędzie 401/403.
 2.  **`ToastNotification`:** Dymki powiadomień pojawiające się w rogu ekranu (Sukces: zielony, Błąd: czerwony). Używane do potwierdzania każdej akcji (np. "Zapisano zmiany", "Plik dodany").
 3.  **`ConfirmationModal`:** Okno modalne wymagające potwierdzenia akcji destrukcyjnych (np. "Czy na pewno chcesz usunąć tego studenta?"). Zawiera przyciski "Anuluj" i "Potwierdź" (czerwony).
 4.  **`LoaderButton`:** Przycisk formularza, który po kliknięciu zmienia stan na "Ładowanie..." i blokuje możliwość ponownego kliknięcia do czasu odpowiedzi z API.
