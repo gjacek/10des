@@ -13,6 +13,8 @@
         x-data="loginForm()" 
         @submit.prevent="submit"
         x-cloak
+        data-next-student="/student/my-courses/"
+        data-next-instructor="/instructor/dashboard/"
     >
         <!-- Error Message -->
         <div 
@@ -89,7 +91,15 @@
             },
             isLoading: false,
             errorMessage: null,
+            nextStudent: '',
+            nextInstructor: '',
             
+            init() {
+                // Read redirect URLs from data attributes
+                this.nextStudent = this.$el.dataset.nextStudent;
+                this.nextInstructor = this.$el.dataset.nextInstructor;
+            },
+
             async submit() {
                 // Reset error state
                 this.errorMessage = null;
@@ -103,7 +113,7 @@
                         throw new Error('CSRF token not found');
                     }
 
-                    // Make API request
+                    // Make API request (Session Auth)
                     const response = await fetch('/api/auth/login/', {
                         method: 'POST',
                         headers: {
@@ -116,17 +126,14 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        // Success - store token and user data
-                        localStorage.setItem('auth_token', data.token);
-                        localStorage.setItem('user_data', JSON.stringify(data.user));
-
+                        // Success - Session is set by server
                         // Dispatch notification
                         window.dispatchNotify('Zalogowano pomyślnie!', 'success');
 
                         // Redirect based on user role
                         const redirectUrl = data.user.is_instructor 
-                            ? '/instructor/dashboard/' 
-                            : '/student/my-courses/';
+                            ? this.nextInstructor 
+                            : this.nextStudent;
                         
                         // Small delay to show success notification
                         setTimeout(() => {
@@ -153,7 +160,7 @@
                     if (error.message === 'CSRF token not found') {
                         this.errorMessage = 'Błąd konfiguracji. Odśwież stronę.';
                     } else {
-                        this.errorMessage = 'Błąd połączenia. Sprawdź połączenie z internetem.';
+                        this.errorMessage = 'Błąd połączenia. Sprawdź połączenie z internetem (Błąd: ' + error.message + ')';
                     }
                 } finally {
                     this.isLoading = false;

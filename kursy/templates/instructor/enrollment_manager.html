@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Zarządzanie Zapisami: {{ course.name }} - Platforma Kursowa{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>Zarządzanie Zapisami</h1>
+    <p>Kurs: <strong>{{ course.name }}</strong> ({{ course.edition.name }})</p>
+</hgroup>
+
+<div x-data="enrollmentManager({{ course.id }})">
+    <!-- Tab Navigation -->
+    <div role="group">
+        <button 
+            @click="switchTab('pending')" 
+            :class="activeTab === 'pending' ? '' : 'outline'"
+            :aria-current="activeTab === 'pending'">
+            Oczekujący
+        </button>
+        <button 
+            @click="switchTab('approved')" 
+            :class="activeTab === 'approved' ? '' : 'outline'"
+            :aria-current="activeTab === 'approved'">
+            Zapisani
+        </button>
+        <button 
+            @click="switchTab('rejected')" 
+            :class="activeTab === 'rejected' ? '' : 'outline'"
+            :aria-current="activeTab === 'rejected'">
+            Odrzuceni
+        </button>
+    </div>
+
+    <!-- Bulk Action Bar -->
+    <template x-if="selectedIds.length > 0">
+        <article class="grid" style="margin-top: 1rem; margin-bottom: 1rem; padding: 1rem; align-items: center; background-color: var(--pico-card-background-color);">
+            <div>
+                Wybrano: <strong x-text="selectedIds.length"></strong>
+            </div>
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <template x-if="activeTab === 'pending'">
+                    <button @click="performBulkAction('approve')" class="contrast">Akceptuj zaznaczone</button>
+                </template>
+                <template x-if="activeTab === 'pending'">
+                    <button @click="performBulkAction('reject')" class="secondary outline">Odrzuć zaznaczone</button>
+                </template>
+                <template x-if="activeTab === 'approved'">
+                    <button @click="performBulkAction('delete')" class="secondary outline">Usuń z kursu</button>
+                </template>
+                <template x-if="activeTab === 'rejected'">
+                    <button @click="performBulkAction('restore')" class="contrast outline">Przywróć</button>
+                </template>
+            </div>
+        </article>
+    </template>
+
+    <!-- Loading State -->
+    <div x-show="isLoading" aria-busy="true" style="padding: 2rem; text-align: center;">Ładowanie danych...</div>
+
+    <!-- Empty State -->
+    <div x-show="!isLoading && enrollments.length === 0" style="padding: 2rem; text-align: center;">
+        <p x-text="emptyMessage"></p>
+    </div>
+
+    <!-- Enrollment Table -->
+    <figure x-show="!isLoading && enrollments.length > 0">
+        <table role="grid" class="striped">
+            <thead>
+                <tr>
+                    <th scope="col" style="width: 50px;">
+                        <input type="checkbox" @change="toggleSelectAll" :checked="allSelected">
+                    </th>
+                    <th scope="col">Student</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Akcje</th>
+                </tr>
+            </thead>
+            <tbody>
+                <template x-for="enrollment in enrollments" :key="enrollment.id">
+                    <tr>
+                        <td>
+                            <input type="checkbox" :value="enrollment.id" x-model="selectedIds">
+                        </td>
+                        <td>
+                            <span x-text="enrollment.student.first_name"></span> 
+                            <span x-text="enrollment.student.last_name"></span>
+                        </td>
+                        <td x-text="enrollment.student.email"></td>
+                        <td>
+                            <div class="grid" style="grid-template-columns: auto auto; gap: 0.5rem; justify-content: start;">
+                                <template x-if="activeTab === 'pending'">
+                                    <button @click="performSingleAction(enrollment.id, 'approve')" class="xs contrast">Akceptuj</button>
+                                </template>
+                                <template x-if="activeTab === 'pending'">
+                                    <button @click="performSingleAction(enrollment.id, 'reject')" class="xs secondary outline">Odrzuć</button>
+                                </template>
+                                <template x-if="activeTab === 'approved'">
+                                    <button @click="performSingleAction(enrollment.id, 'delete')" class="xs secondary outline">Usuń</button>
+                                </template>
+                                <template x-if="activeTab === 'rejected'">
+                                    <button @click="performSingleAction(enrollment.id, 'restore')" class="xs outline">Przywróć</button>
+                                </template>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </figure>
+    
+    <div style="margin-top: 2rem;">
+        <a href="{% url 'instructor_dashboard' %}" role="button" class="secondary outline">Wróć do Panelu</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('enrollmentManager', (courseId) => ({
+            courseId: courseId,
+            activeTab: 'pending',
+            enrollments: [],
+            selectedIds: [],
+            isLoading: false,
+
+            init() {
+                this.fetchEnrollments();
+            },
+
+            get emptyMessage() {
+                switch(this.activeTab) {
+                    case 'pending': return 'Brak oczekujących zapisów.';
+                    case 'approved': return 'Brak zapisanych studentów.';
+                    case 'rejected': return 'Brak odrzuconych wniosków.';
+                    default: return 'Brak danych.';
+                }
+            },
+
+            get allSelected() {
+                return this.enrollments.length > 0 && this.selectedIds.length === this.enrollments.length;
+            },
+
+            async fetchEnrollments() {
+                this.isLoading = true;
+                this.selectedIds = [];
+                try {
+                    const response = await window.apiClient(`/api/courses/${this.courseId}/enrollments/?status=${this.activeTab}`);
+                    if (response.ok) {
+                        this.enrollments = await response.json();
+                    } else {
+                        window.dispatchNotify('Nie udało się pobrać listy zapisów.', 'error');
+                    }
+                } catch (error) {
+                    console.error(error);
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+
+            switchTab(tab) {
+                if (this.activeTab !== tab) {
+                    this.activeTab = tab;
+                    this.fetchEnrollments();
+                }
+            },
+
+            toggleSelectAll(e) {
+                if (e.target.checked) {
+                    this.selectedIds = this.enrollments.map(e => e.id.toString()); // x-model treats values as strings sometimes
+                    // actually let's ensure types match. API returns int IDs.
+                    this.selectedIds = this.enrollments.map(e => e.id);
+                } else {
+                    this.selectedIds = [];
+                }
+            },
+
+            async performAction(ids, action) {
+                if (!confirm('Czy na pewno chcesz wykonać tę akcję?')) return;
+
+                this.isLoading = true;
+                try {
+                    const response = await window.apiClient(`/api/courses/${this.courseId}/enrollments/bulk-update/`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            enrollment_ids: ids,
+                            action: action
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        window.dispatchNotify(data.message || 'Operacja zakończona sukcesem.', 'success');
+                        await this.fetchEnrollments(); // Refresh list
+                    } else {
+                        const err = await response.json();
+                        window.dispatchNotify(err.detail || 'Wystąpił błąd.', 'error');
+                        this.isLoading = false; // Stop loading if error, but keep list
+                    }
+                } catch (error) {
+                    console.error(error);
+                    this.isLoading = false;
+                }
+            },
+
+            performSingleAction(id, action) {
+                this.performAction([id], action);
+            },
+
+            performBulkAction(action) {
+                this.performAction(this.selectedIds, action);
+            }
+        }));
+    });
+</script>
+
+<style>
+    /* Small button helper */
+    button.xs {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        width: auto;
+        display: inline-block;
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+

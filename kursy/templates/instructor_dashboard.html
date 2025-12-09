@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Panel Prowadzącego - Platforma Kursowa{% endblock %}
+
+{% block content %}
+<section>
+    <div class="grid">
+        <div>
+            <h1>Panel Prowadzącego</h1>
+        </div>
+        <div style="text-align: right;">
+            <a href="{% url 'course_create' %}" role="button">Utwórz nowy kurs</a>
+        </div>
+    </div>
+</section>
+
+<section>
+    {% if courses %}
+    <figure>
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th scope="col">Nazwa kursu</th>
+                    <th scope="col">Edycja</th>
+                    <th scope="col">Widoczność</th>
+                    <th scope="col">Oczekujący</th>
+                    <th scope="col">Akcje</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in courses %}
+                <tr>
+                    <td>{{ course.name }}</td>
+                    <td>{{ course.edition.name }}</td>
+                    <td>
+                        <label>
+                            <input type="checkbox" role="switch" 
+                                   {% if course.is_visible %}checked{% endif %}
+                                   x-data="visibilityToggle({{ course.id }}, {{ course.is_visible|yesno:'true,false' }})"
+                                   @change="toggleVisibility">
+                            <span x-text="isVisible ? 'Widoczny' : 'Ukryty'"></span>
+                        </label>
+                    </td>
+                    <td>
+                        {% if course.pending_count > 0 %}
+                        <span data-tooltip="Oczekujący studenci">
+                            <strong>{{ course.pending_count }}</strong>
+                        </span>
+                        {% else %}
+                        <span class="secondary">0</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small>
+                            <a href="{% url 'course_edit' course.pk %}" class="secondary">Edycja</a> • 
+                            <a href="#" class="secondary">Lekcje</a> • 
+                            <a href="{% url 'instructor_course_enrollments' course.pk %}" class="secondary">Zapisy</a>
+                        </small>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </figure>
+    {% else %}
+    <article>
+        <header>Brak kursów</header>
+        <p>Nie masz jeszcze żadnych kursów. Utwórz pierwszy!</p>
+    </article>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('visibilityToggle', (courseId, initialStatus) => ({
+            isVisible: initialStatus,
+            async toggleVisibility(e) {
+                const newValue = e.target.checked;
+                // Optimistic update
+                this.isVisible = newValue;
+
+                try {
+                    // TODO: Upewnić się, że endpoint API istnieje
+                    const response = await window.apiClient(`/api/courses/${courseId}/`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ is_visible: newValue })
+                    });
+                    
+                    if (response.ok) {
+                        window.dispatchNotify('Zmieniono widoczność kursu.', 'success');
+                    } else {
+                        throw new Error('Failed to update');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    // Revert on error
+                    this.isVisible = !newValue;
+                    e.target.checked = !newValue;
+                    window.dispatchNotify('Nie udało się zmienić statusu kursu.', 'error');
+                }
+            }
+        }));
+    });
+</script>
+{% endblock %}
+

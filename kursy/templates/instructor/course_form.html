@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }} - Platforma Kursowa{% endblock %}
+
+{% block content %}
+<hgroup>
+    <h1>{{ page_title }}</h1>
+</hgroup>
+
+{{ initial_data|json_script:"initial-data" }}
+{{ editions_data|json_script:"editions-data" }}
+
+<article>
+    <script>
+        const initialData = JSON.parse(document.getElementById('initial-data').textContent);
+        const editions = JSON.parse(document.getElementById('editions-data').textContent);
+    </script>
+    <form x-data="courseForm(initialData, editions)" @submit.prevent="submit">
+        <!-- Global Errors -->
+        <div x-show="errors.non_field_errors" class="pico-color-red-500" style="margin-bottom: 1rem;">
+            <template x-for="error in errors.non_field_errors">
+                <p x-text="error"></p>
+            </template>
+        </div>
+
+        <!-- Name -->
+        <label>
+            Nazwa kursu
+            <input type="text" x-model="formData.name" @input="clearError('name')" :aria-invalid="errors.name ? 'true' : null" required>
+            <small x-show="errors.name" class="pico-color-red-500" x-text="errors.name"></small>
+        </label>
+
+        <!-- Edition -->
+        <label>
+            Edycja
+            <select x-model="formData.edition_id" @change="clearError('edition_id')" :aria-invalid="errors.edition_id ? 'true' : null" required>
+                <option value="" disabled selected>Wybierz edycję...</option>
+                <template x-for="edition in editions" :key="edition.id">
+                    <option :value="edition.id" x-text="edition.name" :selected="formData.edition_id == edition.id"></option>
+                </template>
+            </select>
+            <small x-show="errors.edition_id" class="pico-color-red-500" x-text="errors.edition_id"></small>
+        </label>
+
+        <!-- Description -->
+        <label>
+            Opis
+            <textarea x-model="formData.description" @input="clearError('description')" :aria-invalid="errors.description ? 'true' : null" rows="5" required></textarea>
+            <small x-show="errors.description" class="pico-color-red-500" x-text="errors.description"></small>
+        </label>
+
+        <!-- Visibility -->
+        <label>
+            <input type="checkbox" role="switch" x-model="formData.is_visible">
+            Widoczny publicznie
+        </label>
+
+        <!-- Actions -->
+        <div class="grid">
+            <a href="{% url 'instructor_dashboard' %}" role="button" class="secondary">Anuluj</a>
+            <button type="submit" :aria-busy="isSaving">Zapisz</button>
+        </div>
+    </form>
+</article>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('courseForm', (initialData, editions) => ({
+            formData: {
+                name: initialData?.name || '',
+                description: initialData?.description || '',
+                edition_id: initialData?.edition?.id || '', 
+                is_visible: initialData?.is_visible || false
+            },
+            editions: editions || [],
+            isEditing: !!initialData?.id,
+            courseId: initialData?.id || null,
+            isSaving: false,
+            errors: {},
+
+            clearError(field) {
+                if (this.errors[field]) {
+                    delete this.errors[field];
+                }
+            },
+
+            async submit() {
+                this.isSaving = true;
+                this.errors = {};
+
+                const url = this.isEditing 
+                    ? `/api/courses/${this.courseId}/` 
+                    : '/api/courses/';
+                const method = this.isEditing ? 'PUT' : 'POST';
+
+                try {
+                    const response = await window.apiClient(url, {
+                        method: method,
+                        body: JSON.stringify(this.formData)
+                    });
+
+                    if (response.ok) {
+                        window.dispatchNotify(
+                            this.isEditing ? 'Kurs został zaktualizowany.' : 'Kurs został utworzony.', 
+                            'success'
+                        );
+                        setTimeout(() => {
+                            window.location.href = "{% url 'instructor_dashboard' %}";
+                        }, 500);
+                    } else {
+                        const data = await response.json();
+                        this.errors = data;
+                        window.dispatchNotify('Formularz zawiera błędy.', 'error');
+                    }
+                } catch (error) {
+                    console.error(error);
+                } finally {
+                    this.isSaving = false;
+                }
+            }
+        }));
+    });
+</script>
+{% endblock %}
+

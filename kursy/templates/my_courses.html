@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Moje Kursy - Platforma Kursowa{% endblock %}
+
+{% block content %}
+<section>
+    <!-- PageHeader -->
+    <hgroup>
+        <h1>Moje Kursy</h1>
+        <p>Lista kursów, na które jesteś zapisany.</p>
+    </hgroup>
+
+    <!-- Content -->
+    {% if courses %}
+        <!-- CourseGrid -->
+        <div class="grid">
+            {% for course in courses %}
+                <!-- CourseCard -->
+                <article>
+                    <header>
+                        <strong>{{ course.name }}</strong>
+                        <br>
+                        <small class="secondary">{{ course.edition.name }}</small>
+                    </header>
+                    <p>
+                        {{ course.description|truncatewords:20 }}
+                    </p>
+                    <footer>
+                        <div class="grid">
+                            <small>Prowadzący: {{ course.instructor.get_full_name }}</small>
+                            <!-- TODO: Link do szczegółów kursu -->
+                            <a href="#" role="button" class="outline">Przejdź do kursu</a>
+                        </div>
+                    </footer>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- EmptyState -->
+        <article class="center-align" style="text-align: center; padding: 3rem;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open" style="margin-bottom: 1rem; color: var(--pico-muted-color);">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 1-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+            <h3>Nie jesteś zapisany na żaden kurs</h3>
+            <p>Przejrzyj katalog dostępnych kursów i zapisz się na zajęcia.</p>
+            <!-- TODO: Link do katalogu kursów -->
+            <a href="#" role="button">Zobacz dostępne kursy</a>
+        </article>
+    {% endif %}
+</section>
+{% endblock %}
+
