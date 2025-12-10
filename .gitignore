@@ -210,3 +210,7 @@ productionfiles/
 
 # Test data and credentials
 test.txt
+check_output.txt
+test_output.txt
+test_python.txt
+attachments/
