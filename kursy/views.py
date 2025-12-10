@@ -12,6 +12,8 @@ from .models import Course, Lesson, Enrollment, Attachment
 from .forms import CourseForm, LessonCreateForm, LessonUpdateForm
 
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('begin')
     return render(request, 'registration/login.html')
 
 def register_view(request):
