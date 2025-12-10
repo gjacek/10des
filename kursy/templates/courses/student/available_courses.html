@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}Dostępne Kursy{% endblock %}
+
+{% block content %}
+<article>
+    <header>
+        <h1>Dostępne Kursy</h1>
+        <p>Przeglądaj ofertę kursów i zapisz się na zajęcia.</p>
+    </header>
+
+    {% if not courses_with_status %}
+        <p>Brak dostępnych kursów w tej chwili.</p>
+    {% else %}
+        <div class="grid">
+            {% for item in courses_with_status %}
+                <article>
+                    <header>
+                        <strong>{{ item.course.name }}</strong>
+                        <br>
+                        <small>{{ item.course.edition }}</small>
+                    </header>
+                    
+                    <p>{{ item.course.description|truncatewords:20 }}</p>
+                    <p><small>Prowadzący: {{ item.course.instructor.first_name }} {{ item.course.instructor.last_name }}</small></p>
+
+                    <footer>
+                        <!-- Alpine.js Component for Enrollment Action -->
+                        <div x-data="enrollmentAction({{ item.course.id }}, '{{ item.user_status }}')">
+                            
+                            <!-- Button for 'none' status -->
+                            <template x-if="status === 'none'">
+                                <button 
+                                    @click="enroll()" 
+                                    :aria-busy="isLoading"
+                                    :disabled="isLoading">
+                                    Wyślij prośbę
+                                </button>
+                            </template>
+
+                            <!-- Button/Badge for 'pending' status -->
+                            <template x-if="status === 'pending'">
+                                <button disabled class="secondary">
+                                    Oczekuje na zatwierdzenie
+                                </button>
+                            </template>
+
+                            <!-- Link/Badge for 'approved' status -->
+                            <template x-if="status === 'approved'">
+                                <a role="button" class="outline" href="{% url 'student_course_detail' item.course.id %}">
+                                    Przejdź do kursu
+                                </a>
+                            </template>
+
+                            <!-- Button/Badge for 'rejected' status -->
+                            <template x-if="status === 'rejected'">
+                                <button disabled class="contrast">
+                                    Odrzucony
+                                </button>
+                            </template>
+                        </div>
+                    </footer>
+                </article>
+            {% endfor %}
+        </div>
+    {% endif %}
+</article>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('enrollmentAction', (courseId, initialStatus) => ({
+            courseId: courseId,
+            status: initialStatus,
+            isLoading: false,
+
+            async enroll() {
+                if (this.isLoading) return;
+                this.isLoading = true;
+
+                try {
+                    const response = await window.apiClient(`/api/courses/${this.courseId}/enroll/`, {
+                        method: 'POST'
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.status = data.status; // Should be 'pending'
+                        window.dispatchNotify('Wysłano prośbę o dołączenie do kursu.', 'success');
+                    } else {
+                        const errorData = await response.json();
+                        window.dispatchNotify(errorData.detail || 'Wystąpił błąd podczas zapisywania.', 'error');
+                        
+                        // If user is already enrolled/rejected according to server, update status
+                        if (errorData.status) {
+                            this.status = errorData.status;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Enrollment error:', error);
+                    // window.dispatchNotify handled in apiClient
+                } finally {
+                    this.isLoading = false;
+                }
+            }
+        }));
+    });
+</script>
+{% endblock %}
+

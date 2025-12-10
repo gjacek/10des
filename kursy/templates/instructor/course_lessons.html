@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Lekcje: {{ course.name }} - Platforma Kursowa{% endblock %}
+
+{% block content %}
+<!-- Component: CourseHeader -->
+<hgroup>
+    <h1>Zarządzanie Lekcjami</h1>
+    <p>Kurs: <strong>{{ course.name }}</strong> ({{ course.edition.name }})</p>
+</hgroup>
+
+<!-- Component: LessonManagementContainer -->
+<article>
+    <!-- Component: ActionToolbar -->
+    <div class="grid" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <a href="{% url 'instructor_dashboard' %}" class="secondary">Wróć do listy kursów</a>
+        </div>
+        <div>
+            <!-- Note: Lesson Create View to be implemented -->
+            <a href="{% url 'instructor_lesson_create' course.id %}" role="button" class="contrast">Dodaj lekcję</a>
+        </div>
+    </div>
+
+    <!-- Component: LessonTable -->
+    <figure>
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th scope="col">Tytuł</th>
+                    <th scope="col">Pliki</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" style="text-align: right;">Akcje</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lesson in lessons %}
+                <!-- Component: LessonRow (Alpine.js) -->
+                <tr x-data="lessonRow({{ lesson.id }}, {{ lesson.is_published|yesno:'true,false' }})">
+                    <td>
+                        <strong>{{ lesson.title }}</strong>
+                    </td>
+                    <td>
+                        <span class="badge" data-tooltip="Liczba załączników">{{ lesson.files_count }}</span>
+                    </td>
+                    <td>
+                        <!-- Component: PublishToggle -->
+                        <label>
+                            <input type="checkbox" role="switch" x-model="isPublished" @change="toggleStatus">
+                            <span x-text="isPublished ? 'Opublikowana' : 'Robocza'"></span>
+                        </label>
+                    </td>
+                    <td style="text-align: right;">
+                        <div class="grid" style="display: inline-flex; gap: 0.5rem;">
+                            <!-- Note: Lesson Edit View to be implemented -->
+                            <a href="{% url 'instructor_lesson_edit' course.id lesson.id %}" role="button" class="outline xs">Edytuj</a>
+                            
+                            <!-- Component: DeleteAction -->
+                            <button @click="deleteLesson" class="secondary outline xs">Usuń</button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 2rem;">
+                        <em>Brak lekcji w tym kursie. Dodaj pierwszą lekcję!</em>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </figure>
+</article>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('lessonRow', (id, initialStatus) => ({
+            lessonId: id,
+            isPublished: initialStatus,
+            courseId: {{ course.id }},
+            isProcessing: false,
+
+            async toggleStatus() {
+                if (this.isProcessing) return;
+                this.isProcessing = true;
+                const originalState = !this.isPublished; 
+                
+                try {
+                    const response = await window.apiClient(`/api/courses/${this.courseId}/lessons/${this.lessonId}/`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ is_published: this.isPublished })
+                    });
+
+                    if (response.ok) {
+                        window.dispatchNotify('Status lekcji został zmieniony.', 'success');
+                    } else {
+                        this.isPublished = originalState;
+                        window.dispatchNotify('Nie udało się zmienić statusu.', 'error');
+                    }
+                } catch (error) {
+                    this.isPublished = originalState;
+                    console.error(error);
+                } finally {
+                    this.isProcessing = false;
+                }
+            },
+
+            async deleteLesson() {
+                if (this.isProcessing) return;
+                if (!confirm('Czy na pewno chcesz usunąć tę lekcję? Operacja jest nieodwracalna.')) return;
+                
+                this.isProcessing = true;
+                try {
+                    const response = await window.apiClient(`/api/courses/${this.courseId}/lessons/${this.lessonId}/`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok || response.status === 204) {
+                        window.dispatchNotify('Lekcja została usunięta.', 'success');
+                        setTimeout(() => window.location.reload(), 500);
+                    } else {
+                        window.dispatchNotify('Nie udało się usunąć lekcji.', 'error');
+                        this.isProcessing = false;
+                    }
+                } catch (error) {
+                    console.error(error);
+                    this.isProcessing = false;
+                }
+            }
+        }));
+    });
+</script>
+
+<style>
+    .badge {
+        background-color: var(--pico-primary-background);
+        color: var(--pico-primary-inverse);
+        padding: 0.25rem 0.5rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+    }
+    
+    button.xs, a.xs {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        width: auto;
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}

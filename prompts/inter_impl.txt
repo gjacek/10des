@@ -3,7 +3,7 @@ Twoim zadaniem jest zaimplementowanie widoku frontendu w oparciu o podany plan i
 Najpierw przejrzyj plan implementacji:
 
 <implementation_plan>
-@course-form-view-implementation-plan.md
+@password-reset-view-implementation-plan.md
 </implementation_plan>
 
 Teraz przejrzyj zasady implementacji:
@@ -63,4 +63,4 @@ W trakcie całego procesu implementacji należy ściśle przestrzegać dostarczo
 
 Upewnij się, że twoja implementacja dokładnie odzwierciedla dostarczony plan implementacji i przestrzega wszystkich określonych zasad. Zwróć szczególną uwagę na strukturę komponentów, integrację API i obsługę interakcji użytkownika.
 
-Last updated: 5.10.2025, 10:03:08
+Po zakończeniu implementacji i testów nie porponuj implementacji kolejnych widoków.

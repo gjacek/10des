@@ -161,8 +161,7 @@
                 <li><a href="{% url 'student_my_courses' %}">Moje Kursy</a></li>
             </template>
             <template x-if="$store.auth.isLoggedIn && $store.auth.isStudent">
-                {# TODO: Przywrócić {% url 'course_list' %} #}
-                <li><a href="#">Dostępne Kursy</a></li>
+                <li><a href="{% url 'student_available_courses' %}">Dostępne Kursy</a></li>
             </template>
 
             <!-- Instructor Links -->

@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="container">
+    <div class="grid">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ul>
+                    <li><a href="{% url 'student_my_courses' %}">Moje kursy</a></li>
+                    <li>{{ course.name }}</li>
+                </ul>
+            </nav>
+
+            <header class="headings">
+                <hgroup>
+                    <h1>{{ course.name }}</h1>
+                    <p>{{ course.description }}</p>
+                </hgroup>
+                <small>Edycja: {{ course.edition.name }}</small>
+            </header>
+
+            <article>
+                <header>
+                    <strong>Prowadzący</strong>
+                </header>
+                <div class="grid">
+                    <div>
+                        {{ course.instructor.first_name }} {{ course.instructor.last_name }}
+                        <br>
+                        <small><a href="mailto:{{ course.instructor.email }}">{{ course.instructor.email }}</a></small>
+                    </div>
+                </div>
+            </article>
+
+            <section>
+                <h3>Lekcje</h3>
+                {% if lessons %}
+                    <div class="list-group">
+                        {% for lesson in lessons %}
+                            <article>
+                                <header>
+                                    <a href="{% url 'student_lesson_detail' course.id lesson.id %}" role="button" class="outline contrast" style="width: 100%; text-align: left; justify-content: start;">
+                                        <strong>{{ lesson.title }}</strong>
+                                    </a>
+                                </header>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <article>
+                        <p>Brak opublikowanych lekcji w tym kursie.</p>
+                    </article>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+</main>
+{% endblock %}
+

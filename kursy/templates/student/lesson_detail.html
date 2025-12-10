@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="container">
+    <nav aria-label="breadcrumb">
+        <ul>
+            <li><a href="{% url 'student_my_courses' %}">Moje kursy</a></li>
+            <li><a href="{% url 'student_course_detail' course.id %}">{{ course.name }}</a></li>
+            <li>{{ lesson.title }}</li>
+        </ul>
+    </nav>
+
+    <article>
+        <header>
+            <hgroup>
+                <h1>{{ lesson.title }}</h1>
+                <p>Opublikowano: {{ lesson.is_published|yesno:"Tak,Nie" }}</p>
+            </hgroup>
+        </header>
+
+        <section>
+            {{ lesson.description|linebreaks }}
+        </section>
+
+        {% if attachments %}
+            <footer>
+                <h3>Materiały do pobrania</h3>
+                <div class="grid">
+                    {% for attachment in attachments %}
+                        <article>
+                            <header>
+                                <strong>{{ attachment.original_filename }}</strong>
+                            </header>
+                            <a href="{{ attachment.file.url }}" role="button" class="secondary outline" download>
+                                Pobierz
+                            </a>
+                        </article>
+                    {% endfor %}
+                </div>
+            </footer>
+        {% endif %}
+    </article>
+
+    <div class="grid">
+        <a href="{% url 'student_course_detail' course.id %}" role="button" class="secondary">Wróć do kursu</a>
+    </div>
+</main>
+{% endblock %}
+

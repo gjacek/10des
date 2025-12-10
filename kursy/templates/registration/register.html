@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Rejestracja - Platforma Kursowa{% endblock %}
+
+{% block content %}
+<section class="container" style="max-width: 600px;">
+    <article>
+        <header>
+            <hgroup>
+                <h1>Rejestracja</h1>
+                <p>Utwórz nowe konto studenta</p>
+            </hgroup>
+        </header>
+
+        <form x-data="registerForm()" @submit.prevent="submit">
+            <!-- Global Error -->
+            <div x-show="errors.detail" class="pico-color-red-500" style="color: var(--pico-del-color); margin-bottom: 1rem;">
+                <small x-text="errors.detail"></small>
+            </div>
+
+            <div class="grid">
+                <!-- First Name -->
+                <div>
+                    <label for="first_name">
+                        Imię
+                        <input type="text" 
+                               id="first_name" 
+                               name="first_name" 
+                               x-model="form.first_name" 
+                               @input="clearError('first_name')"
+                               :aria-invalid="errors.first_name ? 'true' : null"
+                               required>
+                    </label>
+                    <template x-if="errors.first_name">
+                        <small style="color: var(--pico-del-color);" x-text="errors.first_name[0]"></small>
+                    </template>
+                </div>
+
+                <!-- Last Name -->
+                <div>
+                    <label for="last_name">
+                        Nazwisko
+                        <input type="text" 
+                               id="last_name" 
+                               name="last_name" 
+                               x-model="form.last_name" 
+                               @input="clearError('last_name')"
+                               :aria-invalid="errors.last_name ? 'true' : null"
+                               required>
+                    </label>
+                    <template x-if="errors.last_name">
+                        <small style="color: var(--pico-del-color);" x-text="errors.last_name[0]"></small>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Email -->
+            <label for="email">
+                Adres e-mail
+                <input type="email" 
+                       id="email" 
+                       name="email" 
+                       x-model="form.email" 
+                       @input="clearError('email')"
+                       :aria-invalid="errors.email ? 'true' : null"
+                       required>
+            </label>
+            <template x-if="errors.email">
+                <small style="color: var(--pico-del-color);" x-text="errors.email[0]"></small>
+            </template>
+
+            <!-- Password -->
+            <label for="password">
+                Hasło
+                <input type="password" 
+                       id="password" 
+                       name="password" 
+                       x-model="form.password" 
+                       @input="clearError('password')"
+                       :aria-invalid="errors.password ? 'true' : null"
+                       required
+                       minlength="8">
+            </label>
+            <template x-if="errors.password">
+                <small style="color: var(--pico-del-color);" x-text="errors.password[0]"></small>
+            </template>
+            <small>Hasło musi mieć co najmniej 8 znaków.</small>
+
+            <!-- Success Message -->
+            <div x-show="successMessage" style="margin-top: 1rem; margin-bottom: 1rem; color: var(--pico-ins-color);">
+                <strong x-text="successMessage"></strong>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" 
+                    :aria-busy="isLoading" 
+                    :disabled="isLoading">
+                <span x-show="!isLoading">Zarejestruj się</span>
+                <span x-show="isLoading">Rejestracja...</span>
+            </button>
+
+            <footer style="text-align: center;">
+                <small>Masz już konto? <a href="{% url 'login' %}">Zaloguj się</a></small>
+            </footer>
+        </form>
+    </article>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function registerForm() {
+        return {
+            form: {
+                first_name: '',
+                last_name: '',
+                email: '',
+                password: ''
+            },
+            errors: {},
+            isLoading: false,
+            successMessage: null,
+
+            clearError(field) {
+                if (this.errors[field]) {
+                    delete this.errors[field];
+                }
+                if (this.errors.detail) {
+                    delete this.errors.detail;
+                }
+            },
+
+            async submit() {
+                this.isLoading = true;
+                this.errors = {};
+                this.successMessage = null;
+
+                try {
+                    const response = await fetch('/api/auth/register/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            // Add CSRF token if needed, though usually DRF handles it via cookies or we need to send X-CSRFToken
+                            'X-CSRFToken': this.getCookie('csrftoken')
+                        },
+                        body: JSON.stringify(this.form)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        this.successMessage = 'Konto utworzone pomyślnie. Przekierowanie do logowania...';
+                        this.form = { first_name: '', last_name: '', email: '', password: '' }; // Clear form
+                        
+                        setTimeout(() => {
+                            window.location.href = "{% url 'login' %}";
+                        }, 2000);
+                    } else {
+                        if (response.status === 400) {
+                            this.errors = data;
+                        } else {
+                            this.errors = { detail: data.detail || 'Wystąpił błąd połączenia. Spróbuj ponownie później.' };
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.errors = { detail: 'Wystąpił błąd sieci. Sprawdź połączenie internetowe.' };
+                } finally {
+                    this.isLoading = false; // Only re-enable if not success? Plan says "Button remains disabled on success"
+                    if (this.successMessage) {
+                        this.isLoading = true; // Keep it busy/disabled
+                    }
+                }
+            },
+
+            getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+        }
+    }
+</script>
+{% endblock %}
+

@@ -54,7 +54,7 @@
                     <td>
                         <small>
                             <a href="{% url 'course_edit' course.pk %}" class="secondary">Edycja</a> • 
-                            <a href="#" class="secondary">Lekcje</a> • 
+                            <a href="{% url 'instructor_course_lessons' course.pk %}" class="secondary">Lekcje</a> • 
                             <a href="{% url 'instructor_course_enrollments' course.pk %}" class="secondary">Zapisy</a>
                         </small>
                     </td>

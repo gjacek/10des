@@ -1,9 +1,6 @@
-"""
-Serializery dla API REST aplikacji kursowej.
-"""
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import CustomUser, Course, CourseEdition, Enrollment
+from .models import CustomUser, Course, CourseEdition, Enrollment, Lesson, Attachment
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -131,6 +128,44 @@ class CourseSerializer(serializers.ModelSerializer):
         if request and hasattr(request, 'user'):
             validated_data['instructor'] = request.user
         return super().create(validated_data)
+
+
+class LessonSerializer(serializers.ModelSerializer):
+    """
+    Serializer dla modelu Lesson.
+    """
+    class Meta:
+        model = Lesson
+        fields = ['id', 'title', 'description', 'is_published', 'course']
+        read_only_fields = ['id', 'course']
+
+    def create(self, validated_data):
+        # Course ID should be passed in context or managed by view
+        # Here we rely on the view to set the course, or we expect it in data?
+        # Typically the view logic handles setting the course based on URL param.
+        return super().create(validated_data)
+
+
+class AttachmentSerializer(serializers.ModelSerializer):
+    """
+    Serializer dla modelu Attachment.
+    """
+    file_url = serializers.SerializerMethodField()
+    size = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Attachment
+        fields = ['id', 'original_filename', 'file', 'file_url', 'download_count', 'size']
+        extra_kwargs = {'file': {'write_only': True}}
+
+    def get_file_url(self, obj):
+        return obj.file.url
+
+    def get_size(self, obj):
+        try:
+            return obj.file.size
+        except:
+            return 0
 
 
 class EnrollmentSerializer(serializers.ModelSerializer):

@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<main class="container">
+    <!-- Breadcrumbs -->
+    <nav aria-label="breadcrumb">
+        <ul>
+            <li><a href="{% url 'instructor_dashboard' %}">Pulpit</a></li>
+            <li><a href="{% url 'instructor_course_lessons' course.id %}">{{ course.name }}</a></li>
+            <li><a href="#">{{ lesson.title }}</a></li>
+            <li>Edycja</li>
+        </ul>
+    </nav>
+
+    <div class="grid">
+        <!-- Formularz Lekcji (Server-Side) -->
+        <article>
+            <header>
+                <strong>Edycja Lekcji</strong>
+            </header>
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <label for="{{ form.title.id_for_label }}">
+                    {{ form.title.label }}
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        <small class="error">{{ form.title.errors|join:", " }}</small>
+                    {% endif %}
+                </label>
+
+                <label for="{{ form.description.id_for_label }}">
+                    {{ form.description.label }}
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <small class="error">{{ form.description.errors|join:", " }}</small>
+                    {% endif %}
+                </label>
+
+                <label for="{{ form.is_published.id_for_label }}">
+                    {{ form.is_published }}
+                    {{ form.is_published.label }}
+                </label>
+
+                <footer>
+                    <button type="submit">Zapisz zmiany</button>
+                </footer>
+            </form>
+        </article>
+
+        <!-- Menedżer Załączników (Client-Side - Alpine.js) -->
+        <article x-data="attachmentsManager()" x-init="init()">
+            <header>
+                <strong>Materiały do lekcji</strong>
+            </header>
+
+            <!-- Error Alert -->
+            <div x-show="error" class="headings" style="color: var(--pico-color-red-500); margin-bottom: 1rem;">
+                <span x-text="error"></span>
+            </div>
+
+            <!-- Lista załączników -->
+            <ul x-show="!isLoading && attachments.length > 0">
+                <template x-for="file in attachments" :key="file.id">
+                    <li class="grid" style="align-items: center; grid-template-columns: 1fr auto auto; gap: 1rem; margin-bottom: 0.5rem;">
+                        <span x-text="file.original_filename"></span>
+                        <small x-text="formatSize(file.size)"></small>
+                        <a href="#" @click.prevent="deleteAttachment(file.id)" role="button" class="outline secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;">Usuń</a>
+                    </li>
+                </template>
+            </ul>
+
+            <div x-show="!isLoading && attachments.length === 0" style="text-align: center; color: var(--pico-muted-color);">
+                <small>Brak załączników.</small>
+            </div>
+
+            <div x-show="isLoading" aria-busy="true">Ładowanie...</div>
+
+            <!-- Upload Control -->
+            <footer class="grid">
+                <input type="file" multiple @change="handleFileSelect" x-ref="fileInput" :disabled="isUploading">
+                <button @click="uploadFiles" :aria-busy="isUploading" :disabled="isUploading || selectedFiles.length === 0">
+                    <span x-show="!isUploading">Dodaj pliki</span>
+                    <span x-show="isUploading">Wysyłanie...</span>
+                </button>
+            </footer>
+        </article>
+    </div>
+</main>
+
+<script>
+    function attachmentsManager() {
+        return {
+            courseId: {{ course.id }},
+            lessonId: {{ lesson.id }},
+            attachments: [],
+            selectedFiles: [],
+            isLoading: false,
+            isUploading: false,
+            error: null,
+            csrfToken: '{{ csrf_token }}',
+
+            async init() {
+                await this.fetchAttachments();
+            },
+
+            async fetchAttachments() {
+                this.isLoading = true;
+                this.error = null;
+                try {
+                    const response = await fetch(`/api/courses/${this.courseId}/lessons/${this.lessonId}/attachments/`, {
+                        headers: {
+                            'X-CSRFToken': this.csrfToken
+                        }
+                    });
+                    if (!response.ok) throw new Error('Błąd pobierania danych.');
+                    this.attachments = await response.json();
+                } catch (e) {
+                    this.error = e.message;
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+
+            handleFileSelect(event) {
+                this.selectedFiles = Array.from(event.target.files);
+                this.error = null;
+                
+                // Client-side validation
+                const totalFiles = this.attachments.length + this.selectedFiles.length;
+                if (totalFiles > 10) {
+                    this.error = "Maksymalnie 10 plików w lekcji.";
+                    this.selectedFiles = [];
+                    event.target.value = ''; // clear input
+                    return;
+                }
+
+                for (let file of this.selectedFiles) {
+                    if (file.size > 10 * 1024 * 1024) {
+                        this.error = `Plik ${file.name} jest za duży (max 10MB).`;
+                        this.selectedFiles = [];
+                        event.target.value = '';
+                        return;
+                    }
+                    const ext = '.' + file.name.split('.').pop().toLowerCase();
+                    const allowed = ['.pdf', '.zip', '.pptx', '.docx', '.txt', '.jpg', '.jpeg'];
+                    if (!allowed.includes(ext)) {
+                        this.error = `Niedozwolony format pliku ${file.name}.`;
+                        this.selectedFiles = [];
+                        event.target.value = '';
+                        return;
+                    }
+                }
+            },
+
+            async uploadFiles() {
+                if (this.selectedFiles.length === 0) return;
+                
+                this.isUploading = true;
+                this.error = null;
+
+                try {
+                    // Upload files sequentially or practically parallel
+                    for (let file of this.selectedFiles) {
+                        const formData = new FormData();
+                        formData.append('file', file);
+
+                        const response = await fetch(`/api/courses/${this.courseId}/lessons/${this.lessonId}/attachments/`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': this.csrfToken
+                            },
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            const data = await response.json();
+                            throw new Error(data.detail || 'Błąd wysyłania pliku.');
+                        }
+                    }
+                    
+                    // Refresh list
+                    await this.fetchAttachments();
+                    this.selectedFiles = [];
+                    this.$refs.fileInput.value = ''; // clear input
+
+                } catch (e) {
+                    this.error = e.message;
+                } finally {
+                    this.isUploading = false;
+                }
+            },
+
+            async deleteAttachment(id) {
+                if (!confirm('Czy na pewno chcesz usunąć ten plik?')) return;
+
+                try {
+                    const response = await fetch(`/api/courses/${this.courseId}/lessons/${this.lessonId}/attachments/${id}/`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRFToken': this.csrfToken
+                        }
+                    });
+
+                    if (!response.ok) throw new Error('Nie udało się usunąć pliku.');
+                    
+                    // Remove from local list to avoid refetch
+                    this.attachments = this.attachments.filter(a => a.id !== id);
+                } catch (e) {
+                    this.error = e.message;
+                }
+            },
+
+            formatSize(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        }
+    }
+</script>
+{% endblock %}

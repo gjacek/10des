@@ -28,8 +28,7 @@
                     <footer>
                         <div class="grid">
                             <small>Prowadzący: {{ course.instructor.get_full_name }}</small>
-                            <!-- TODO: Link do szczegółów kursu -->
-                            <a href="#" role="button" class="outline">Przejdź do kursu</a>
+                            <a href="{% url 'student_course_detail' course.id %}" role="button" class="outline">Przejdź do kursu</a>
                         </div>
                     </footer>
                 </article>

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<main class="container">
+    <!-- Breadcrumbs -->
+    <nav aria-label="breadcrumb">
+        <ul>
+            <li><a href="{% url 'instructor_dashboard' %}">Pulpit</a></li>
+            <li><a href="{% url 'instructor_course_lessons' course.id %}">{{ course.name }}</a></li>
+            <li>Nowa lekcja</li>
+        </ul>
+    </nav>
+
+    <div class="grid">
+        <article>
+            <header>
+                <strong>Nowa Lekcja</strong>
+            </header>
+            <form method="post">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <label for="{{ form.title.id_for_label }}">
+                    {{ form.title.label }}
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        <small class="error">{{ form.title.errors|join:", " }}</small>
+                    {% endif %}
+                </label>
+
+                <label for="{{ form.description.id_for_label }}">
+                    {{ form.description.label }}
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <small class="error">{{ form.description.errors|join:", " }}</small>
+                    {% endif %}
+                </label>
+
+                <label for="{{ form.is_published.id_for_label }}">
+                    {{ form.is_published }}
+                    {{ form.is_published.label }}
+                </label>
+
+                <footer>
+                    <button type="submit">Utwórz lekcję</button>
+                </footer>
+            </form>
+        </article>
+        
+        <!-- Placeholder/Help text -->
+        <div>
+            <article>
+                <header>Informacja</header>
+                <p>
+                    Po utworzeniu lekcji zostaniesz przekierowany do widoku edycji, gdzie będziesz mógł dodać materiały i załączniki.
+                </p>
+            </article>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
