@@ -50,7 +50,7 @@ jobs:
 
   status-comment:
     needs: [lint, test]
-    if: always() && github.event_name == 'pull_request'
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Post Status Comment
@@ -70,9 +70,14 @@ jobs:
               message += `* Testy: ${testStatus === 'success' ? '✅' : (testStatus === 'skipped' ? '⚪ (Pominięto)' : '❌')}\n`;
             }
             
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: message
-            })
+            if (context.payload.pull_request) {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: message
+              });
+            } else {
+              console.log('Not a Pull Request, skipping comment posting.');
+              console.log(message);
+            }
