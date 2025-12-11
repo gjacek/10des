@@ -204,7 +204,7 @@ class CourseLessonsView(InstructorCourseMixin, TemplateView):
         course = get_object_or_404(Course, pk=course_id, instructor=self.request.user)
         
         context['course'] = course
-        context['lessons'] = course.lessons.all().order_by('title')
+        context['lessons'] = course.lessons.annotate(files_count=Count('attachments')).order_by('title')
         return context
 
 class LessonUpdateView(InstructorCourseMixin, UpdateView):
